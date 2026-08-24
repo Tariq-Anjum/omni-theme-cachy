@@ -23,7 +23,15 @@
 # Unknown keys, relative destinations, '..' escapes, duplicate sources
 # and duplicate targets are hard errors.
 #
-# Session 03 ships the registry empty; session 05 (KDE adapter) fills it
-# in with the Plasma color-scheme target.
+# Session 05: the KDE color scheme package. Omni owns the *generated
+# scheme file*; applying it (plasma-apply-colorscheme) is what makes KDE
+# copy values into kdeglobals — that file stays KDE-owned user state.
 
-template = []
+[[template]]
+adapter = "kde-colorscheme"
+
+[template.source]
+path = "kde/OmniTheme.colors.tpl"
+
+[template.target]
+path = "~/.local/share/color-schemes/OmniTheme.colors"

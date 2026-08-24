@@ -12,31 +12,31 @@ user overrides, rollback, and a security model for third-party themes.
 
 ## Status
 
-**Session 02 — theme model, color engine, gradients, and surface roles committed.**
+**Session 05 — KDE Plasma 6 adapter: Color Scheme + wallpaper, verified live.**
 
-- Semantic theme model (`core/theme_model.py`): required metadata, 28
-  semantic roles + full ANSI ramp (`color0`–`color15`)
-- Surface roles (`surfaces.toml`, Omarchy `shell.toml` analog):
-  `[popups]` / `[controls]` groups with solid-or-gradient border values,
-  CSS-style width lists (`"2 4 6 8"`), `<key>-alpha` companions
-- TOML loading with strict errors (`core/theme_loader.py`, stdlib `tomllib`)
-- Color engine: `#RRGGBB` (+ documented `#RGB` normalization), mixing,
-  WCAG luminance/contrast, Omarchy gradient parsing
-  (`rgba(RRGGBBAA) … 45deg`), border-width shorthand (`core/color.py`)
-- Validation API + `omni-theme theme validate <ref> [--json] [--strict]`
-  (`core/validation.py`, `core/cli.py`) — WCAG-derived contrast warnings,
-  never invented thresholds
-- Neutral dark default theme in `themes/default/` including a baseline
-  `surfaces.toml`; original generated wallpaper (see
-  `scripts/generate_default_wallpaper.py`)
+- `adapters/kde/`: capability → plan → render → apply → verify →
+  rollback adapter driven by the core registry/event lifecycle
+- Color Scheme generation (`templates/kde/OmniTheme.colors.tpl`,
+  theme-tier override in the default theme) with an explicit, tested
+  palette→KDE mapping table; applied via `plasma-apply-colorscheme`;
+  verified through `kdeglobals` read-back
+- Wallpaper pipeline: validate → content-hash cache → native apply →
+  active-wallpaper read-back (qdbus6 scripting, appletsrc fallback);
+  per-theme journal for exact rollback restore
+- CLI: `omni theme validate|preview|apply|current|rollback`,
+  `omni status`, `omni wallpaper list|current|set`
+- Design + verified-command matrix:
+  `docs/architecture/KDE_ADAPTER.md`
 
-Session 01 groundwork:
+Earlier sessions:
 
-- `docs/research/ENVIRONMENT.md` — verified machine/tooling inventory
-- `docs/research/OMARCHY_THEMING.md` — upstream design study
-- `docs/research/KDE_PLASMA_6.md` — Plasma theming internals
-- `docs/research/LINUX_THEME_ENGINES.md` — pywal / Stylix / Gradience survey
-- `docs/research/ARCHITECTURE_DECISIONS.md` — the decisions and why
+- Session 04 — activation state, atomic promotion, rollback, adapter
+  contract (`core/activation.py`, `core/state.py`, `core/adapters.py`)
+- Session 03 — template rendering, user overlays, safe staging
+  (`core/renderer.py`, `core/staging.py`)
+- Session 02 — semantic theme model, color engine, gradients, surface
+  roles (`core/theme_model.py`, `core/color.py`)
+- Session 01 — research groundwork under `docs/research/`
 
 ## Layout
 

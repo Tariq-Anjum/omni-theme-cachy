@@ -26,10 +26,14 @@ dependencies = []
 dev = ["pytest>=8"]
 
 [project.scripts]
+omni = "core.cli:main"
 omni-theme = "core.cli:main"
 
 [tool.setuptools]
-packages = ["core"]
+packages = ["core", "adapters", "adapters.kde"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = [
+  "kde: integration tests that require a live KDE Plasma 6 session (deselect with '-m \"not kde\"')",
+]
