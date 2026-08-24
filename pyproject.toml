@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "omni-theme-cachy"
+version = "0.1.0"
+description = "Universal theming engine for CachyOS + KDE Plasma 6: one semantic palette drives every desktop surface."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { file = "LICENSE" }
+authors = [{ name = "Tariq Anjum" }]
+keywords = ["kde", "plasma", "theme", "theming", "cachyos", "colorscheme"]
+classifiers = [
+  "Environment :: X11 Applications :: KDE",
+  "Intended Audience :: End Users/Desktop",
+  "Operating System :: POSIX :: Linux",
+  "Programming Language :: Python :: 3",
+  "Topic :: Desktop Environment",
+]
+# Runtime dependencies: none by design — stdlib only (tomllib, string.Template,
+# subprocess). See docs/research/ARCHITECTURE_DECISIONS.md.
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[project.scripts]
+omni-theme = "core.cli:main"
+
+[tool.setuptools]
+packages = ["core"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+build/
+dist/
+
+# Runtime state (never commit generated themes or snapshots)
+state/
+staging/
+current/
+
+# Editors / OS
+.idea/
+.vscode/
+.DS_Store
+
+# Local experiments
+*.local.toml
+*.log
