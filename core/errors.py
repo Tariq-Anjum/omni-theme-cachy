@@ -68,3 +68,33 @@ class StagingError(ThemeError):
 
 class ManifestError(ThemeError):
     """A manifest.json is missing, unreadable or structurally invalid."""
+
+
+# --- Session 04: runtime state, activation, adapters -----------------------
+
+
+class StateError(ThemeError):
+    """The runtime state (``state.json`` or the generation layout under
+    ``$XDG_STATE_HOME/omni-theme``) is missing, corrupt, inconsistent or
+    violates an invariant (bad generation id, non-symlink ``current``,
+    …)."""
+
+
+class ActivationError(ThemeError):
+    """An activation invariant was violated (staged output failed its
+    integrity check, promotion hit an unexpected layout, …)."""
+
+
+class ConflictError(ThemeError):
+    """A live target file diverged from the hash the engine last wrote
+    there, and no explicit force policy was requested."""
+
+
+class RollbackError(ThemeError):
+    """A rollback was requested but cannot be performed (no previous
+    generation recorded, or the recorded generation vanished)."""
+
+
+class AdapterError(ThemeError):
+    """An adapter violates the adapter contract (duplicate id registered,
+    malformed capability/result, …)."""
