@@ -21,11 +21,18 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
-from core.color import contrast_ratio, strip_hex
-from core.errors import ColorError, ThemeError, ThemeValidationError
+from core.color import classify_surface_value, contrast_ratio, strip_hex
+from core.errors import (
+    ColorError,
+    SurfaceValueError,
+    ThemeError,
+    ThemeValidationError,
+)
 from core.theme_loader import _read_toml, load_theme
 from core.theme_model import (
+    KNOWN_SURFACE_GROUPS,
     REQUIRED_COLORS,
+    SURFACES_FILE,
     THEME_FILE,
     Palette,
     Theme,
@@ -171,6 +178,44 @@ def _check_contrast(theme: Theme) -> list[Issue]:
     return issues
 
 
+def _check_surfaces(theme: Theme) -> list[Issue]:
+    """Surface-role rules.
+
+    Surface *keys* are consumer vocabulary (adapters own them), so only
+    groups and value syntax are checked; unknown groups warn, malformed
+    values error. A theme without any surfaces is usable (adapters fall
+    back to palette roles) but warned about.
+    """
+    if len(theme.surfaces) == 0:
+        return [
+            Issue(
+                "warning",
+                "NO_SURFACES",
+                f"theme ships no {SURFACES_FILE!r}; UI adapters will fall back "
+                "to palette-derived defaults",
+            )
+        ]
+    issues: list[Issue] = []
+    known = set(KNOWN_SURFACE_GROUPS)
+    for group, entries in sorted(theme.surfaces.items()):
+        if group not in known:
+            issues.append(
+                Issue(
+                    "warning",
+                    "UNKNOWN_SURFACE_GROUP",
+                    f"unknown surface group [{group}] (allowed; consumers may ignore it)",
+                )
+            )
+        for key, value in sorted(entries.items()):
+            try:
+                classify_surface_value(key, value)
+            except (SurfaceValueError, ColorError) as exc:
+                issues.append(
+                    Issue("error", "SURFACE_BAD_VALUE", f"[{group}] {exc}")
+                )
+    return issues
+
+
 def validate_theme(theme: Theme) -> list[Issue]:
     """Rule-check a loaded theme; returns all findings."""
     issues: list[Issue] = []
@@ -178,6 +223,7 @@ def validate_theme(theme: Theme) -> list[Issue]:
     issues += _check_required_and_unknown(theme.palette)
     issues += _check_wallpaper(theme)
     issues += _check_contrast(theme)
+    issues += _check_surfaces(theme)
     return issues
 
 
@@ -212,9 +258,12 @@ def validate_theme_dir(path: str | Path, *, strict: bool = False) -> list[Issue]
     try:
         theme = load_theme(theme_path)
     except ThemeError as exc:
-        severity_code = (
-            "BAD_COLOR" if isinstance(exc, ColorError) else "LOAD_FAILED"
-        )
+        if isinstance(exc, ColorError):
+            severity_code = "BAD_COLOR"
+        elif isinstance(exc, SurfaceValueError):
+            severity_code = "SURFACE_BAD_VALUE"
+        else:
+            severity_code = "LOAD_FAILED"
         issues.append(
             Issue(
                 "error",

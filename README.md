@@ -12,18 +12,23 @@ user overrides, rollback, and a security model for third-party themes.
 
 ## Status
 
-**Session 02 — theme model and color engine committed.**
+**Session 02 — theme model, color engine, gradients, and surface roles committed.**
 
 - Semantic theme model (`core/theme_model.py`): required metadata, 28
   semantic roles + full ANSI ramp (`color0`–`color15`)
+- Surface roles (`surfaces.toml`, Omarchy `shell.toml` analog):
+  `[popups]` / `[controls]` groups with solid-or-gradient border values,
+  CSS-style width lists (`"2 4 6 8"`), `<key>-alpha` companions
 - TOML loading with strict errors (`core/theme_loader.py`, stdlib `tomllib`)
 - Color engine: `#RRGGBB` (+ documented `#RGB` normalization), mixing,
-  WCAG luminance/contrast (`core/color.py`)
+  WCAG luminance/contrast, Omarchy gradient parsing
+  (`rgba(RRGGBBAA) … 45deg`), border-width shorthand (`core/color.py`)
 - Validation API + `omni-theme theme validate <ref> [--json] [--strict]`
   (`core/validation.py`, `core/cli.py`) — WCAG-derived contrast warnings,
   never invented thresholds
-- Neutral dark default theme in `themes/default/` (original generated
-  wallpaper; see `scripts/generate_default_wallpaper.py`)
+- Neutral dark default theme in `themes/default/` including a baseline
+  `surfaces.toml`; original generated wallpaper (see
+  `scripts/generate_default_wallpaper.py`)
 
 Session 01 groundwork:
 

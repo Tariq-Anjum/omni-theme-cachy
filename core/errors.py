@@ -18,6 +18,15 @@ class ColorError(ThemeError):
     """A color value is not valid ``#RRGGBB`` (or documented ``#RGB``)."""
 
 
+class SurfaceValueError(ThemeError):
+    """A surface-role value is malformed (gradient string, border-width
+    list, out-of-range alpha, …).
+
+    Kept separate from :class:`ColorError` because these values are not
+    plain colors; both are caught by :class:`ThemeError` handlers.
+    """
+
+
 class ThemeValidationError(ThemeError):
     """Raised when strict validation is requested and issues exist.
 

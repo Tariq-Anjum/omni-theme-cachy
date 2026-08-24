@@ -1,0 +1,18 @@
+# UI surface roles — how controls and popups use the palette.
+# Separate from colors.toml so borders, alphas, popups and control
+# chrome can be tuned without touching base semantic colors.
+#
+# Value language (see core/color.py):
+#   color        "#RRGGBB"
+#   gradient     "rgba(RRGGBBAA) rgba(RRGGBBAA) 45deg"   (2+ stops, optional angle)
+#   border-width int or CSS-style list "2 4 6 8" (top right bottom left)
+#   alpha        "<key>-alpha" companion in [0, 1]
+
+[popups]
+background    = "#1e222b"                          # elevated over `background`
+border        = "#4f9eea"                          # accent
+border-width  = 2
+
+[controls]
+normal-border = "#3a4150"                          # quiet structural gray-blue
+focus-border  = "rgba(4f9eeaee) rgba(8f6cafee) 45deg"   # accent → accent_secondary

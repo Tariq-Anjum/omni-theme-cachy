@@ -9,11 +9,14 @@ import pytest
 from core.errors import ColorError, ThemeError
 from core.theme_model import (
     ANSI_ROLES,
+    KNOWN_SURFACE_GROUPS,
     REQUIRED_COLORS,
     REQUIRED_METADATA_FIELDS,
     SEMANTIC_ROLES,
+    SURFACES_FILE,
     VALID_MODES,
     Palette,
+    Surfaces,
     Theme,
     ThemeMeta,
     WallpaperConfig,
@@ -47,6 +50,10 @@ class TestConstants:
     def test_required_colors_are_semantic_plus_ansi_without_duplicates(self):
         assert REQUIRED_COLORS == SEMANTIC_ROLES + ANSI_ROLES
         assert len(set(REQUIRED_COLORS)) == len(REQUIRED_COLORS)
+
+    def test_surface_constants(self):
+        assert KNOWN_SURFACE_GROUPS == ("popups", "controls")
+        assert SURFACES_FILE == "surfaces.toml"
 
 
 class TestThemeMeta:
@@ -102,6 +109,30 @@ class TestWallpaperConfig:
         assert config.resolve(Path("/themes/x")) == Path("/usr/share/w.png")
 
 
+class TestSurfaces:
+    def test_empty_by_default(self):
+        surfaces = Surfaces()
+        assert len(surfaces) == 0
+        assert surfaces.group("popups") == {}
+        assert surfaces.get("popups", "border") is None
+        assert "popups" not in surfaces
+
+    def test_group_and_get(self):
+        surfaces = Surfaces(
+            {"popups": {"border": "#7aa2f7", "border-width": 2}}
+        )
+        assert surfaces.group("popups") == {"border": "#7aa2f7", "border-width": 2}
+        assert surfaces.get("popups", "border-width") == 2
+        assert surfaces.get("controls", "normal-border") is None
+        assert surfaces.get("controls", "normal-border", "#ffffff") == "#ffffff"
+        assert "popups" in surfaces
+        assert dict(surfaces.items()) == surfaces.groups
+
+    def test_values_preserved_as_authored(self):
+        raw = {"popups": {"focus-border": "rgba(33ccffee) rgba(00ff99ee) 45deg"}}
+        assert Surfaces(raw).get("popups", "focus-border") == raw["popups"]["focus-border"]
+
+
 class TestTheme:
     def _meta(self, mode="dark"):
         return ThemeMeta(name="T", id="t", version=1, mode=mode)
@@ -111,6 +142,14 @@ class TestTheme:
         assert isinstance(theme.palette, Palette)
         assert theme.color("accent") == "#4f9eea"
         assert theme.mode == "dark"
+
+    def test_dict_surfaces_convenience(self):
+        theme = Theme(meta=self._meta(), surfaces={"popups": {"border-width": 3}})
+        assert isinstance(theme.surfaces, Surfaces)
+        assert theme.surfaces.get("popups", "border-width") == 3
+
+    def test_surfaces_default_empty(self):
+        assert len(Theme(meta=self._meta()).surfaces) == 0
 
     def test_resolve_wallpaper_requires_path(self):
         theme = Theme(meta=self._meta(), wallpaper=WallpaperConfig("w.png"))

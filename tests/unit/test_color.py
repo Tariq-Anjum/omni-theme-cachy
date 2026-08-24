@@ -5,17 +5,24 @@ from __future__ import annotations
 import pytest
 
 from core.color import (
+    BorderWidth,
+    Gradient,
+    GradientStop,
+    classify_surface_value,
     contrast_ratio,
     hex_to_rgb,
     hex_to_rgb_string,
     mix,
     mix_rgb,
     normalize_ratio,
+    parse_border_width,
+    parse_gradient,
     relative_luminance,
     rgb_to_hex,
     strip_hex,
+    validate_surface_value,
 )
-from core.errors import ColorError
+from core.errors import ColorError, SurfaceValueError
 
 
 class TestStripHex:
@@ -141,3 +148,145 @@ class TestLuminanceAndContrast:
     def test_default_theme_core_pair_meets_aa(self):
         ratio = contrast_ratio("#d6dae2", "#14161c")
         assert ratio >= 4.5
+
+
+class TestParseGradient:
+    def test_omarchy_canonical_form(self):
+        g = parse_gradient("rgba(33ccffee) rgba(00ff99ee) 45deg")
+        assert isinstance(g, Gradient)
+        assert g.angle == 45.0
+        assert g.stops == (
+            GradientStop(color="#33ccff", alpha=238 / 255),
+            GradientStop(color="#00ff99", alpha=238 / 255),
+        )
+        assert g.stops[0].alpha_byte == 238
+        assert g.stops[0].alpha_hex == "ee"
+
+    def test_alpha_ff_is_opaque_and_00_transparent(self):
+        g = parse_gradient("rgba(112233ff) rgba(44556600) 90deg")
+        assert g.stops[0].alpha == 1.0
+        assert g.stops[1].alpha == 0.0
+
+    def test_angle_optional(self):
+        g = parse_gradient("#14161c #4f9eea")
+        assert g.angle is None
+        assert [s.color for s in g.stops] == ["#14161c", "#4f9eea"]
+
+    @pytest.mark.parametrize(("raw", "expected"), [("45deg", 45.0), ("45", 45.0), ("-30.5deg", -30.5), ("0DEG", 0.0)])
+    def test_angle_forms(self, raw, expected):
+        text = f"#111111 #222222 {raw}"
+        assert parse_gradient(text).angle == expected
+
+    def test_uppercase_rgba_wrapper_accepted(self):
+        g = parse_gradient("RGBA(33CCFFEE) RGBA(00FF99EE) 45deg")
+        assert g.stops[0].color == "#33ccff"
+
+    def test_mixed_stop_styles(self):
+        g = parse_gradient("rgba(33ccffee) #4f9eea 45deg")
+        assert [s.color for s in g.stops] == ["#33ccff", "#4f9eea"]
+        assert [s.alpha for s in g.stops] == [pytest.approx(238 / 255), 1.0]
+
+    def test_three_stops(self):
+        g = parse_gradient("#000000 #808080 #ffffff 120deg")
+        assert len(g.stops) == 3
+        assert g.angle == 120.0
+
+    def test_round_trip_via_str(self):
+        text = "rgba(33ccffee) rgba(00ff99ee) 45deg"
+        assert str(parse_gradient(text)) == text
+
+    def test_str_omits_unset_angle(self):
+        assert str(parse_gradient("#112233 #445566")) == "rgba(112233ff) rgba(445566ff)"
+
+    @pytest.mark.parametrize(
+        "raw",
+        [
+            "",
+            "   ",
+            "#14161c",                      # single stop
+            "rgba(33ccffee)",               # single translucent token
+            "rgba(33ccff) #4f9eea 45deg",   # 6 hex digits inside parens
+            "rgba(33ccffgg) #4f9eea",       # non-hex digits
+            "#zzzzzz #4f9eea",              # malformed plain stop
+            "red blue",                     # named colors unsupported
+            "#111111 #222222 45deg extra",  # junk after angle
+            "#111111 #222222 fortyfive",    # bad angle token
+            42,
+            None,
+        ],
+    )
+    def test_malformed_rejected(self, raw):
+        with pytest.raises(SurfaceValueError):
+            parse_gradient(raw)
+
+
+class TestParseBorderWidth:
+    @pytest.mark.parametrize(
+        ("raw", "expected"),
+        [
+            (2, BorderWidth(2, 2, 2, 2)),
+            ("2", BorderWidth(2, 2, 2, 2)),
+            ("2 4", BorderWidth(2, 4, 2, 4)),      # T/B R/L
+            ("2 4 6", BorderWidth(2, 4, 6, 4)),    # T R/L B
+            ("2 4 6 8", BorderWidth(2, 4, 6, 8)),  # T R B L
+            (0, BorderWidth(0, 0, 0, 0)),
+            ("0 0 0 0", BorderWidth(0, 0, 0, 0)),
+        ],
+    )
+    def test_css_shorthand_expansion(self, raw, expected):
+        assert parse_border_width(raw) == expected
+
+    def test_namedtuple_accessors(self):
+        bw = parse_border_width("1 2 3 4")
+        assert (bw.top, bw.right, bw.bottom, bw.left) == (1, 2, 3, 4)
+
+    @pytest.mark.parametrize(
+        "raw",
+        ["", "   ", "1 2 3 4 5", "-1", "-1 2", "x", "1 x", "1.5", "1.5 2", True, None, 2.5, ["2"]],
+    )
+    def test_malformed_rejected(self, raw):
+        with pytest.raises(SurfaceValueError):
+            parse_border_width(raw)
+
+
+class TestSurfaceValues:
+    @pytest.mark.parametrize(
+        ("key", "value", "kind"),
+        [
+            ("background", "#1a1b26", "color"),
+            ("focus-border", "rgba(33ccffee) rgba(00ff99ee) 45deg", "gradient"),
+            ("border-width", 2, "border-width"),
+            ("border-width", "2 4 6 8", "border-width"),
+            ("scrim-alpha", 0.5, "alpha"),
+            ("fill-alpha", 0, "alpha"),
+            ("padding", 12, "number"),
+        ],
+    )
+    def test_classification(self, key, value, kind):
+        assert classify_surface_value(key, value) == kind
+
+    @pytest.mark.parametrize(
+        ("key", "value"),
+        [
+            ("background", "nothex"),                       # bare word, no '#' or spaces
+            ("background", "#zzzzzz"),                      # bad hex
+            ("border-width", "2 x"),
+            ("border-width", -3),
+            ("border-width", []),
+            ("scrim-alpha", 1.5),
+            ("scrim-alpha", -0.1),
+            ("scrim-alpha", "0.5"),
+            ("padding", -4),
+            ("padding", 4.2),
+            ("anything", True),
+            ("background", ""),
+            ("background", None),
+        ],
+    )
+    def test_rejections(self, key, value):
+        with pytest.raises(SurfaceValueError):
+            classify_surface_value(key, value)
+
+    def test_validate_surface_value_is_quiet_on_success(self):
+        validate_surface_value("focus-border", "#7aa2f7")  # must not raise
+        validate_surface_value("border-width", "2 4")

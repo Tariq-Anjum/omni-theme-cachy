@@ -14,10 +14,76 @@ from core.validation import (
     validate_theme_dir,
 )
 
-from tests.conftest import FULL_PALETTE, write_theme
+from tests.conftest import FULL_PALETTE, SURFACES_TOML, write_theme
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_THEME = PROJECT_ROOT / "themes" / "default"
+
+class TestSurfacesRules:
+    def test_shipped_default_surfaces_validate_clean(self):
+        theme = load_theme(DEFAULT_THEME)
+        assert "NO_SURFACES" not in {i.code for i in validate_theme(theme)}
+        assert theme.surfaces.get("popups", "border-width") == 2
+
+    def test_missing_surfaces_warns(self, tmp_path):
+        theme_dir = write_theme(tmp_path / "nosurf", surfaces=None)
+        issues = validate_theme_dir(theme_dir)
+        assert {"NO_SURFACES"} <= codes_of(issues)
+        assert all(i.code != "NO_SURFACES" or not i.is_error for i in issues)
+
+    def test_unknown_surface_group_warns(self, tmp_path):
+        theme_dir = write_theme(
+            tmp_path / "extragroup",
+            surfaces=SURFACES_TOML + '\n[lock]\nborder = "#ffffff"\n',
+        )
+        issues = validate_theme_dir(theme_dir)
+        found = [i for i in issues if i.code == "UNKNOWN_SURFACE_GROUP"]
+        assert len(found) == 1
+        assert "[lock]" in found[0].message
+        assert not found[0].is_error
+
+    def test_bad_gradient_is_error_via_pure_model(self, make_theme):
+        from core.theme_model import Surfaces, Theme, ThemeMeta
+        surfaces = Surfaces(
+            {"controls": {"focus-border": "rgba(33ccff) rgba(00ff99ee)"}}
+        )
+        theme = Theme(meta=ThemeMeta("T", "t", 1, "dark"), palette=dict(FULL_PALETTE), surfaces=surfaces)
+        bad = [i for i in validate_theme(theme) if i.code == "SURFACE_BAD_VALUE"]
+        assert len(bad) == 1
+        assert "focus-border" in bad[0].message
+        assert bad[0].is_error
+
+    def test_bad_gradient_maps_to_surface_code_via_dir(self, tmp_path):
+        theme_dir = write_theme(
+            tmp_path / "badgrad",
+            surfaces='[controls]\nfocus-border = "rgba(33ccff) rgba(00ff99ee)"\n',
+        )
+        assert "SURFACE_BAD_VALUE" in codes_of(validate_theme_dir(theme_dir))
+
+    def test_bad_border_width_maps_to_surface_code_via_dir(self, tmp_path):
+        theme_dir = write_theme(
+            tmp_path / "badwidth",
+            surfaces='[popups]\nborder-width = "1 2 3 4 5"\n',
+        )
+        issues = validate_theme_dir(theme_dir)
+        assert any(
+            i.code == "SURFACE_BAD_VALUE" and "border-width" in i.message
+            for i in issues
+        )
+
+    def test_alpha_out_of_range_flagged(self, tmp_path):
+        theme_dir = write_theme(
+            tmp_path / "alpha",
+            surfaces="[controls]\nfill-alpha = 2\n",
+        )
+        assert "SURFACE_BAD_VALUE" in codes_of(validate_theme_dir(theme_dir))
+
+    def test_valid_surfaces_produce_no_issues(self, tmp_path):
+        theme_dir = write_theme(tmp_path / "good")
+        (theme_dir / "wallpapers").mkdir()
+        (theme_dir / "wallpapers" / "test.png").write_bytes(b"x")
+        assert validate_theme_dir(theme_dir) == []
+
 
 def codes_of(issues):
     return {i.code for i in issues}

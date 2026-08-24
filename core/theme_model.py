@@ -20,20 +20,24 @@ from core.errors import ColorError, ThemeError
 __all__ = [
     "THEME_FILE",
     "COLORS_FILE",
+    "SURFACES_FILE",
     "WALLPAPER_DIR",
     "REQUIRED_METADATA_FIELDS",
     "VALID_MODES",
     "SEMANTIC_ROLES",
     "ANSI_ROLES",
     "REQUIRED_COLORS",
+    "KNOWN_SURFACE_GROUPS",
     "ThemeMeta",
     "WallpaperConfig",
     "Palette",
+    "Surfaces",
     "Theme",
 ]
 
 THEME_FILE = "theme.toml"
 COLORS_FILE = "colors.toml"
+SURFACES_FILE = "surfaces.toml"
 WALLPAPER_DIR = "wallpapers"
 
 #: ``[theme]`` keys every theme must declare.
@@ -85,6 +89,10 @@ ANSI_ROLES: tuple[str, ...] = tuple(f"color{i}" for i in range(16))
 
 #: Everything a theme must provide to load cleanly.
 REQUIRED_COLORS: tuple[str, ...] = SEMANTIC_ROLES + ANSI_ROLES
+
+#: Surface groups defined by the spec (§4). Other groups are allowed but
+#: flagged as warnings so new upstream concepts stay visible.
+KNOWN_SURFACE_GROUPS: tuple[str, ...] = ("popups", "controls")
 
 
 @dataclass(frozen=True)
@@ -162,18 +170,53 @@ class Palette:
 
 
 @dataclass(frozen=True)
+class Surfaces:
+    """UI surface roles from ``surfaces.toml`` (Omarchy ``shell.toml`` analog).
+
+    Values stay **as authored** (strings/ints) for round-trip fidelity —
+    the renderer and adapters parse them via
+    :mod:`core.color` helpers when they need structure. Syntax is
+    enforced at load time; semantics belong to consumers.
+
+    Layout: ``group → key → value``, e.g. ``{"popups": {"border-width": 2}}``.
+    """
+
+    groups: dict[str, dict[str, object]] = field(default_factory=dict)
+
+    def group(self, name: str) -> dict[str, object]:
+        """Entries of one surface group; empty dict when absent."""
+        return self.groups.get(name, {})
+
+    def get(self, group: str, key: str, default=None):
+        """Single value; *default* when the group or key is missing."""
+        return self.groups.get(group, {}).get(key, default)
+
+    def __contains__(self, group: str) -> bool:
+        return group in self.groups
+
+    def __len__(self) -> int:
+        return len(self.groups)
+
+    def items(self):
+        return self.groups.items()
+
+
+@dataclass(frozen=True)
 class Theme:
-    """A fully loaded theme: metadata, wallpaper config and palette."""
+    """A fully loaded theme: metadata, wallpaper config, palette, surfaces."""
 
     meta: ThemeMeta
     wallpaper: WallpaperConfig = field(default_factory=WallpaperConfig)
     palette: Palette = field(default_factory=Palette)
+    surfaces: Surfaces = field(default_factory=Surfaces)
     #: Directory the theme was loaded from, when known.
     path: Path | None = None
 
     def __post_init__(self) -> None:
         if isinstance(self.palette, dict):  # convenience for hand-built themes
             object.__setattr__(self, "palette", Palette(dict(self.palette)))
+        if isinstance(self.surfaces, dict):
+            object.__setattr__(self, "surfaces", Surfaces(dict(self.surfaces)))
 
     @property
     def mode(self) -> str:

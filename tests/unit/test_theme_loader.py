@@ -6,10 +6,11 @@ from pathlib import Path
 
 import pytest
 
-from core.errors import ColorError, ThemeLoadError
+from core.errors import ColorError, SurfaceValueError, ThemeLoadError
 from core.theme_loader import discover_themes, find_theme, load_theme
+from core.theme_model import Surfaces
 
-from tests.conftest import FULL_PALETTE, write_theme
+from tests.conftest import FULL_PALETTE, SURFACES_TOML, write_theme
 
 
 class TestLoadTheme:
@@ -127,6 +128,79 @@ class TestLoadTheme:
         (theme_dir / "colors.toml").write_text('accent = 0x4f9eea\n')
         with pytest.raises((ColorError, ThemeLoadError)):
             load_theme(theme_dir)
+
+
+class TestSurfacesLoading:
+    def test_loads_surfaces_as_authored(self, make_theme):
+        theme = load_theme(make_theme())
+        assert isinstance(theme.surfaces, Surfaces)
+        assert theme.surfaces.get("popups", "background") == "#1e222b"
+        assert theme.surfaces.get("popups", "border-width") == 2  # int stays int
+        assert (
+            theme.surfaces.get("controls", "focus-border")
+            == "rgba(4f9eeaee) rgba(8f6cafee) 45deg"
+        )
+
+    def test_missing_surfaces_file_is_empty_not_error(self, tmp_path):
+        theme_dir = write_theme(tmp_path / "nosurf", surfaces=None)
+        theme = load_theme(theme_dir)
+        assert len(theme.surfaces) == 0
+
+    def test_embedded_surfaces_fallback(self, tmp_path):
+        body = (
+            '[theme]\nname="T"\nid="t"\nversion=1\nmode="dark"\n\n'
+            "[surfaces.popups]\nborder-width = 4\n"
+        )
+        theme_dir = write_theme(tmp_path / "embed", surfaces=None, theme_toml=body)
+        theme = load_theme(theme_dir)
+        assert theme.surfaces.get("popups", "border-width") == 4
+
+    def test_surfaces_file_wins_over_embedded(self, tmp_path):
+        body = (
+            '[theme]\nname="T"\nid="t"\nversion=1\nmode="dark"\n\n'
+            "[surfaces.popups]\nborder-width = 9\n"
+        )
+        theme_dir = write_theme(tmp_path / "both", theme_toml=body)
+        assert load_theme(theme_dir).surfaces.get("popups", "border-width") == 2
+
+    def test_malformed_gradient_names_source_and_key(self, tmp_path):
+        bad = SURFACES_TOML.replace(
+            'focus-border = "rgba(4f9eeaee) rgba(8f6cafee) 45deg"',
+            'focus-border = "rgba(33ccff) rgba(00ff99ee) 45deg"',
+        )
+        theme_dir = write_theme(tmp_path / "badgrad", surfaces=bad)
+        with pytest.raises(SurfaceValueError, match="focus-border"):
+            load_theme(theme_dir)
+
+    def test_malformed_border_width_rejected(self, tmp_path):
+        theme_dir = write_theme(
+            tmp_path / "badwidth",
+            surfaces='[popups]\nborder-width = "2 x"\n',
+        )
+        with pytest.raises(SurfaceValueError, match="border-width"):
+            load_theme(theme_dir)
+
+    def test_scalar_surface_group_rejected(self, tmp_path):
+        theme_dir = write_theme(
+            tmp_path / "badshape",
+            surfaces='flat = 3\n\n[popups]\nborder-width = 2\n',
+        )
+        with pytest.raises(ThemeLoadError, match=r"must be a table"):
+            load_theme(theme_dir)
+
+    def test_alpha_companion_validated(self, tmp_path):
+        theme_dir = write_theme(
+            tmp_path / "alpha",
+            surfaces="[controls]\nfill-alpha = 0.75\n",
+        )
+        assert load_theme(theme_dir).surfaces.get("controls", "fill-alpha") == 0.75
+
+        theme_dir_bad = write_theme(
+            tmp_path / "alphabad",
+            surfaces="[controls]\nfill-alpha = 1.5\n",
+        )
+        with pytest.raises(SurfaceValueError, match="fill-alpha"):
+            load_theme(theme_dir_bad)
 
 
 class TestDiscoverAndFind:

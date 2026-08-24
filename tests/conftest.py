@@ -67,6 +67,37 @@ mode = "{mode}"
 default = "wallpapers/test.png"
 """
 
+# Mirrors the shipped themes/default/surfaces.toml so fixture themes are
+# validation-clean by default.
+SURFACES_TOML = """\
+[popups]
+background = "#1e222b"
+border = "#4f9eea"
+border-width = 2
+
+[controls]
+normal-border = "#3a4150"
+focus-border = "rgba(4f9eeaee) rgba(8f6cafee) 45deg"
+"""
+
+
+def _toml_scalar(value) -> str:
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, (int, float)):
+        return repr(value)
+    return '"' + str(value).replace("\\", "\\\\").replace('"', '\\"') + '"'
+
+
+def surfaces_toml_text(groups: dict[str, dict]) -> str:
+    """Render ``{group: {key: value}}`` to TOML text (no writer in stdlib)."""
+    chunks = []
+    for group, entries in groups.items():
+        lines = [f"[{group}]"]
+        lines += [f"{k} = {_toml_scalar(v)}" for k, v in entries.items()]
+        chunks.append("\n".join(lines))
+    return "\n\n".join(chunks) + "\n"
+
 
 def write_theme(
     directory: Path,
@@ -75,8 +106,13 @@ def write_theme(
     colors: dict[str, str] | None = None,
     omit: frozenset[str] | set[str] = frozenset(),
     theme_toml: str | None = None,
+    surfaces: str | dict[str, dict] | None = SURFACES_TOML,
 ) -> Path:
-    """Materialize a theme directory under *directory* and return its path."""
+    """Materialize a theme directory under *directory* and return its path.
+
+    ``surfaces`` may be TOML text, a nested dict, or ``None`` to ship no
+    surfaces at all.
+    """
     directory.mkdir(parents=True, exist_ok=True)
     (directory / "theme.toml").write_text(
         theme_toml if theme_toml is not None else THEME_TOML.format(mode=mode)
@@ -85,6 +121,9 @@ def write_theme(
     palette.update(colors or {})
     lines = "\n".join(f'{role} = "{value}"' for role, value in palette.items())
     (directory / "colors.toml").write_text(lines + "\n")
+    if surfaces is not None:
+        text = surfaces_toml_text(surfaces) if isinstance(surfaces, dict) else surfaces
+        (directory / "surfaces.toml").write_text(text)
     return directory
 
 

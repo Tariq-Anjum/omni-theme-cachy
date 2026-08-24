@@ -5,15 +5,22 @@ Theme layout::
     themes/<theme>/
     ├── theme.toml      # [theme] metadata, [wallpaper]
     ├── colors.toml     # flat table of semantic roles → '#RRGGBB'
+    ├── surfaces.toml   # UI surface roles ([popups], [controls], …)
     └── wallpapers/
 
 Colors may alternatively live in a ``[colors]`` table inside
 ``theme.toml`` (handy for single-file themes); ``colors.toml`` wins when
-both exist so user overrides stay predictable.
+both exist so user overrides stay predictable. Surfaces follow the same
+pattern: ``surfaces.toml`` first, embedded ``[surfaces]`` table second,
+and a theme without either loads with an empty surface set (validation
+reports that as a warning, since adapters degrade gracefully).
 
-Loading is strict: structural problems raise :class:`core.errors.ThemeLoadError`
-and malformed color values raise :class:`core.errors.ColorError` naming the
-offending role. Tolerant reporting belongs to :mod:`core.validation`.
+Loading is strict: structural problems raise
+:class:`core.errors.ThemeLoadError`, malformed color values raise
+:class:`core.errors.ColorError`, and malformed surface values (bad
+gradient / border-width / alpha) raise
+:class:`core.errors.SurfaceValueError` — all naming the offending key or
+role. Tolerant reporting belongs to :mod:`core.validation`.
 """
 
 from __future__ import annotations
@@ -21,14 +28,17 @@ from __future__ import annotations
 import tomllib
 from pathlib import Path
 
+from core.color import classify_surface_value
 from core.color import strip_hex
-from core.errors import ColorError, ThemeLoadError
+from core.errors import ColorError, SurfaceValueError, ThemeLoadError
 from core.theme_model import (
     COLORS_FILE,
     REQUIRED_METADATA_FIELDS,
+    SURFACES_FILE,
     THEME_FILE,
     VALID_MODES,
     Palette,
+    Surfaces,
     Theme,
     ThemeMeta,
     WallpaperConfig,
@@ -101,11 +111,35 @@ def _parse_colors(raw, source: Path) -> Palette:
     return Palette(colors)
 
 
-def _extract_colors(theme_data: dict, theme_path: Path) -> tuple[Palette | None, dict]:
-    """Return (palette_from_colors_toml_or_None, remaining_theme_tables)."""
-    data = dict(theme_data)
-    embedded = data.pop("colors", None)
-    return (embedded if embedded is not None else None), data
+def _parse_surfaces(raw, source: Path) -> Surfaces:
+    """Validate a ``{group: {key: value}}`` table into :class:`Surfaces`."""
+    if not isinstance(raw, dict):
+        raise ThemeLoadError(f"{source}: [surfaces] must be a table of tables")
+    groups: dict[str, dict[str, object]] = {}
+    for group, entries in raw.items():
+        if not isinstance(entries, dict):
+            raise ThemeLoadError(
+                f"{source}: surfaces group [{group}] must be a table of key = value"
+            )
+        checked: dict[str, object] = {}
+        for key, value in entries.items():
+            try:
+                classify_surface_value(key, value)
+            except SurfaceValueError as exc:
+                raise SurfaceValueError(f"{source}: {exc}") from None
+            except ColorError as exc:
+                raise ColorError(f"{source}: {exc}") from None
+            checked[key] = value
+        groups[group] = checked
+    return Surfaces(groups)
+
+
+def _extract_tables(data: dict) -> tuple[dict | None, dict | None]:
+    """Pull embedded ``[colors]``/``[surfaces]`` tables out of theme.toml data."""
+    data = dict(data)
+    colors = data.pop("colors", None)
+    surfaces = data.pop("surfaces", None)
+    return colors, surfaces
 
 
 def load_theme(path: str | Path) -> Theme:
@@ -133,7 +167,7 @@ def load_theme(path: str | Path) -> Theme:
         else WallpaperConfig()
     )
 
-    embedded, _remaining = _extract_colors(data, theme_path)
+    embedded_colors, embedded_surfaces = _extract_tables(data)
 
     colors_path = theme_dir / COLORS_FILE
     if colors_path.is_file():
@@ -142,15 +176,32 @@ def load_theme(path: str | Path) -> Theme:
         if "colors" in colors_data and isinstance(colors_data["colors"], dict):
             colors_data = colors_data["colors"]
         palette = _parse_colors(colors_data, colors_path)
-    elif embedded is not None:
-        palette = _parse_colors(embedded, theme_path)
+    elif embedded_colors is not None:
+        palette = _parse_colors(embedded_colors, theme_path)
     else:
         raise ThemeLoadError(
             f"{theme_dir}: no colors found "
             f"(expected {COLORS_FILE} or a [colors] table in {THEME_FILE})"
         )
 
-    return Theme(meta=meta, wallpaper=wallpaper, palette=palette, path=theme_dir)
+    surfaces_path = theme_dir / SURFACES_FILE
+    if surfaces_path.is_file():
+        surfaces_data = _read_toml(surfaces_path)
+        if "surfaces" in surfaces_data and isinstance(surfaces_data["surfaces"], dict):
+            surfaces_data = surfaces_data["surfaces"]
+        surfaces = _parse_surfaces(surfaces_data, surfaces_path)
+    elif embedded_surfaces is not None:
+        surfaces = _parse_surfaces(embedded_surfaces, theme_path)
+    else:
+        surfaces = Surfaces()
+
+    return Theme(
+        meta=meta,
+        wallpaper=wallpaper,
+        palette=palette,
+        surfaces=surfaces,
+        path=theme_dir,
+    )
 
 
 def discover_themes(root: str | Path) -> list[Path]:
