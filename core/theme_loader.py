@@ -26,6 +26,7 @@ role. Tolerant reporting belongs to :mod:`core.validation`.
 from __future__ import annotations
 
 import tomllib
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 from core.color import classify_surface_value
@@ -44,7 +45,13 @@ from core.theme_model import (
     WallpaperConfig,
 )
 
-__all__ = ["load_theme", "discover_themes", "find_theme"]
+__all__ = [
+    "load_theme",
+    "load_theme_with_overlay",
+    "OverlayReport",
+    "discover_themes",
+    "find_theme",
+]
 
 
 def _read_toml(path: Path) -> dict:
@@ -245,3 +252,106 @@ def find_theme(root: str | Path, reference: str | Path) -> Path:
         f"no theme matching {str(reference)!r} under {root_path} "
         "(searched by directory name, theme.id and theme.name)"
     )
+
+
+# ---------------------------------------------------------------------------
+# User overlays (Omarchy pattern, session 03)
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class OverlayReport:
+    """Provenance of a user-overlay merge.
+
+    ``colors`` / ``surfaces`` record exactly which keys the overlay set
+    (whether it changed the value or restated it), so callers can report
+    ownership honestly instead of guessing.
+    """
+
+    applied: bool
+    colors_path: Path | None = None
+    surfaces_path: Path | None = None
+    colors: frozenset[str] = frozenset()
+    surfaces: frozenset[tuple[str, str]] = frozenset()
+
+    @property
+    def ownership(self) -> str:
+        """Manifest ownership mode implied by this overlay."""
+        return "user-overlay" if self.applied else "base"
+
+
+def _load_overlay_table(path: Path, wrapper: str) -> dict:
+    """Read an overlay TOML file; bare table or single *wrapper*-wrapped."""
+    data = _read_toml(path)
+    if wrapper in data and isinstance(data[wrapper], dict):
+        return data[wrapper]
+    return data
+
+
+def load_theme_with_overlay(
+    theme_dir: str | Path,
+    overlay_dir: str | Path | None,
+) -> tuple[Theme, OverlayReport]:
+    """Load *theme_dir* and deep-merge a user overlay on top of it.
+
+    Overlay layout mirrors a theme directory but may contain only the
+    files being tweaked::
+
+        ~/.config/omni-theme/themes/<theme>/
+        ├── colors.toml     # role = "#RRGGBB" overrides/additions
+        └── surfaces.toml   # [group] key = value overrides/additions
+
+    Merging is **key-by-key deep**: overlay color roles replace base
+    roles (and may add new ones); surface entries replace at the
+    ``(group, key)`` level. Metadata ([theme]) and wallpaper always stay
+    with the base theme — a user tweaks values, never identity. A
+    missing or empty *overlay_dir* is not an error; the base theme is
+    returned untouched with an :class:`OverlayReport` whose
+    ``ownership`` is ``"base"``.
+    """
+    base = load_theme(theme_dir)
+    if overlay_dir is None:
+        return base, OverlayReport(applied=False)
+
+    overlay_path = Path(overlay_dir).expanduser()
+    if not overlay_path.is_dir():
+        return base, OverlayReport(applied=False)
+
+    colors_path = overlay_path / COLORS_FILE
+    surfaces_path = overlay_path / SURFACES_FILE
+
+    overlay_colors: dict[str, str] = {}
+    if colors_path.is_file():
+        raw = _load_overlay_table(colors_path, "colors")
+        overlay_colors = dict(_parse_colors(raw, colors_path).colors)
+
+    overlay_surfaces: dict[str, dict[str, object]] = {}
+    if surfaces_path.is_file():
+        raw = _load_overlay_table(surfaces_path, "surfaces")
+        parsed = _parse_surfaces(raw, surfaces_path)
+        overlay_surfaces = {g: dict(entries) for g, entries in parsed.items()}
+
+    merged_colors = dict(base.palette.colors)
+    merged_colors.update(overlay_colors)
+
+    merged_groups: dict[str, dict[str, object]] = {
+        group: dict(entries) for group, entries in base.surfaces.groups.items()
+    }
+    for group, entries in overlay_surfaces.items():
+        merged_groups.setdefault(group, {}).update(entries)
+
+    merged = replace(
+        base,
+        palette=Palette(merged_colors),
+        surfaces=Surfaces(merged_groups),
+    )
+    report = OverlayReport(
+        applied=bool(overlay_colors or overlay_surfaces),
+        colors_path=colors_path if colors_path.is_file() else None,
+        surfaces_path=surfaces_path if surfaces_path.is_file() else None,
+        colors=frozenset(overlay_colors),
+        surfaces=frozenset(
+            (group, key) for group, entries in overlay_surfaces.items() for key in entries
+        ),
+    )
+    return merged, report

@@ -1,0 +1,29 @@
+# targets.toml — explicit template → destination registry for
+# omni-theme-cachy. The engine renders exactly what is declared here and
+# never infers destination paths from template filenames.
+#
+# Schema (validated strictly by core/targets.py):
+#
+#   [[template]]
+#   adapter = "kde-colorscheme"          # optional, informational
+#
+#   [template.source]
+#   path = "kde/OmniTheme.colors.tpl"    # relative to this directory;
+#                                        # must exist; must end in '.tpl'.
+#                                        # This path is also the logical
+#                                        # template NAME used for the
+#                                        # resolution order:
+#                                        #   1. ~/.config/omni-theme/templates/<name>
+#                                        #   2. <theme>/templates/<name>
+#                                        #   3. this directory (built-in)
+#
+#   [template.target]
+#   path = "~/.local/share/…"            # absolute or '~/…'; no '..'
+#
+# Unknown keys, relative destinations, '..' escapes, duplicate sources
+# and duplicate targets are hard errors.
+#
+# Session 03 ships the registry empty; session 05 (KDE adapter) fills it
+# in with the Plasma color-scheme target.
+
+template = []

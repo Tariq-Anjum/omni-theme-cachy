@@ -37,3 +37,34 @@ class ThemeValidationError(ThemeError):
     def __init__(self, message: str, issues):
         super().__init__(message)
         self.issues = list(issues)
+
+
+# --- Session 03: rendering, registries, staging ---------------------------
+
+
+class RenderError(ThemeError):
+    """A template could not be rendered (unknown variable, bad helper
+    call, malformed ``{{ … }}`` expression).
+
+    Strict by design: unknown variables never silently expand to empty
+    strings, so a typo in a template fails loudly with the template name,
+    line number and offending expression.
+    """
+
+
+class TemplateNotFoundError(RenderError):
+    """A template name resolved to no file in any search root."""
+
+
+class TargetsError(ThemeError):
+    """The template-targets registry (``templates/targets.toml``) is
+    missing, malformed or violates its schema."""
+
+
+class StagingError(ThemeError):
+    """Staging could not be completed (I/O problem, duplicate target,
+    render failure during the pipeline)."""
+
+
+class ManifestError(ThemeError):
+    """A manifest.json is missing, unreadable or structurally invalid."""

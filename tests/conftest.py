@@ -142,3 +142,18 @@ def make_theme(tmp_path):
         return write_theme(tmp_path / label, **kwargs)
 
     return make
+
+
+@pytest.fixture
+def fake_home(tmp_path, monkeypatch):
+    """Redirect HOME and all XDG roots into *tmp_path*.
+
+    Engine path helpers read the environment at call time, so runtime
+    directories created after this fixture never touch the real $HOME.
+    """
+    home = tmp_path / "home"
+    home.mkdir()
+    monkeypatch.setenv("HOME", str(home))
+    for var in ("XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_STATE_HOME"):
+        monkeypatch.delenv(var, raising=False)
+    return home
