@@ -1,0 +1,61 @@
+# Default palette — neutral cool-gray surfaces with a calm blue accent.
+# All values are canonical '#RRGGBB'. Text pairs meet WCAG AA (>= 4.5:1);
+# accent/status pairs meet the UI minimum (>= 3.0:1) against `background`.
+
+# Surfaces (darkest → lightest)
+background         = "#14161c"
+darker_background  = "#0e1015"
+dark_background    = "#101218"
+lighter_background = "#1a1d25"
+
+# Text
+foreground         = "#d6dae2"
+bright_foreground  = "#f5f7fa"
+light_foreground   = "#eef0f4"
+dark_foreground    = "#8a919d"   # for use on light/inverted surfaces
+muted              = "#7d8593"   # de-emphasized text
+
+# Interaction
+accent             = "#4f9eea"
+accent_secondary   = "#8f6caf"
+selection          = "#294664"   # mix(background, accent, 35%)
+
+# Status
+success            = "#82a55b"
+warning            = "#d9a05b"
+error              = "#d9564f"
+info               = "#5b8ec4"
+
+# Terminal base hues
+red                = "#d9564f"
+green              = "#82a55b"
+yellow             = "#d9a05b"
+blue               = "#5b8ec4"
+magenta            = "#a064ca"
+cyan               = "#54a8ae"
+
+# Terminal bright hues
+bright_red         = "#e8878f"
+bright_green       = "#9cc98f"
+bright_yellow      = "#e6be86"
+bright_blue        = "#82abdc"
+bright_magenta     = "#bb8ade"
+bright_cyan        = "#74c4ca"
+
+# ANSI ramp (color0-7 normal, color8-15 bright)
+color0             = "#2a2e39"
+color1             = "#d9564f"
+color2             = "#82a55b"
+color3             = "#d9a05b"
+color4             = "#5b8ec4"
+color5             = "#a064ca"
+color6             = "#54a8ae"
+color7             = "#c5cbd6"
+color8             = "#565d6d"
+color9             = "#e8878f"
+color10            = "#9cc98f"
+color11            = "#e6be86"
+color12            = "#82abdc"
+color13            = "#bb8ade"
+color14            = "#74c4ca"
+color15            = "#eceff4"

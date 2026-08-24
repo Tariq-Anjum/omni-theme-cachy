@@ -1,0 +1,143 @@
+"""Unit tests for core.color."""
+
+from __future__ import annotations
+
+import pytest
+
+from core.color import (
+    contrast_ratio,
+    hex_to_rgb,
+    hex_to_rgb_string,
+    mix,
+    mix_rgb,
+    normalize_ratio,
+    relative_luminance,
+    rgb_to_hex,
+    strip_hex,
+)
+from core.errors import ColorError
+
+
+class TestStripHex:
+    def test_canonical_form(self):
+        assert strip_hex("#1a2b3c") == "1a2b3c"
+
+    def test_uppercase_normalized(self):
+        assert strip_hex("#ABCDEF") == "abcdef"
+
+    @pytest.mark.parametrize(
+        ("short", "long"),
+        [("#abc", "aabbcc"), ("#FFF", "ffffff"), ("#0f0", "00ff00")],
+    )
+    def test_rgb_shorthand_expands_nibbles(self, short, long):
+        assert strip_hex(short) == long
+
+    @pytest.mark.parametrize("value", ["", "#", "#ab", "#abcd", "#abcde7f", "#12g45z", "1a2b3c", "#aabbc"])
+    def test_malformed_rejected(self, value):
+        with pytest.raises(ColorError):
+            strip_hex(value)
+
+    def test_non_string_rejected(self):
+        with pytest.raises(ColorError):
+            strip_hex(0x112233)
+
+
+class TestConversions:
+    def test_hex_to_rgb(self):
+        assert hex_to_rgb("#4f9eea") == (79, 158, 234)
+
+    def test_rgb_to_hex(self):
+        assert rgb_to_hex(79, 158, 234) == "#4f9eea"
+
+    def test_round_trip(self):
+        for value in ("#000000", "#ffffff", "#14161c", "#a064ca"):
+            assert rgb_to_hex(*hex_to_rgb(value)) == value.lower()
+
+    @pytest.mark.parametrize(("r", "g", "b", "expected"), [(255.4, 0, 0, "#ff0000"), (254.6, 0, 0, "#ff0000"), (10.6, 20, 30, "#0b141e")])
+    def test_rgb_to_hex_rounds_floats(self, r, g, b, expected):
+        assert rgb_to_hex(r, g, b) == expected
+
+    def test_rgb_to_hex_clamps_float_slop(self):
+        assert rgb_to_hex(-0.2, 255.2, 128) == "#00ff80"
+
+    @pytest.mark.parametrize("channels", [(-2, 0, 0), (257, 0, 0), (999, 0, 0), (True, 0, 0), ("x", 0, 0)])
+    def test_rgb_to_hex_rejects_bad_channels(self, channels):
+        with pytest.raises(ColorError):
+            rgb_to_hex(*channels)
+
+    def test_hex_to_rgb_string_default(self):
+        assert hex_to_rgb_string("#14161c") == "20, 22, 28"
+
+    def test_hex_to_rgb_string_custom_separator(self):
+        assert hex_to_rgb_string("#14161c", separator=",") == "20,22,28"
+
+
+class TestNormalizeRatio:
+    @pytest.mark.parametrize(
+        ("raw", "expected"),
+        [(0.5, 0.5), (1, 1.0), (0, 0.0), (50, 0.5), (100, 1.0), ("50%", 0.5), ("100%", 1.0), ("15%", 0.15), ("0.35", 0.35)],
+    )
+    def test_accepted_forms(self, raw, expected):
+        assert normalize_ratio(raw) == pytest.approx(expected)
+
+    def test_percent_with_spaces(self):
+        assert normalize_ratio(" 35 % ") == pytest.approx(0.35)
+
+    @pytest.mark.parametrize("raw", [150, -5, "-10%", "abc", None, [], True])
+    def test_out_of_range_or_garbage_rejected(self, raw):
+        with pytest.raises(ColorError):
+            normalize_ratio(raw)
+
+
+class TestMix:
+    def test_endpoints(self):
+        assert mix("#000000", "#ffffff", 0) == "#000000"
+        assert mix("#000000", "#ffffff", 1.0) == "#ffffff"
+        assert mix("#000000", "#ffffff", "100%") == "#ffffff"
+
+    def test_midpoint(self):
+        assert mix("#000000", "#ffffff", 0.5) == "#808080"
+
+    def test_quarter_blend_matches_formula(self):
+        # round(0.75*20 + 0.25*79), etc. for #14161c blended toward #4f9eea
+        expected = rgb_to_hex(
+            round(0.75 * 0x14 + 0.25 * 0x4F),
+            round(0.75 * 0x16 + 0.25 * 0x9E),
+            round(0.75 * 0x1C + 0.25 * 0xEA),
+        )
+        assert mix("#14161c", "#4f9eea", 0.25) == expected
+
+    def test_percent_and_fraction_agree(self):
+        a, b = "#294664", "#54a8ae"
+        assert mix(a, b, 35) == mix(a, b, "35%")
+        assert mix_rgb(a, b, 35) == mix_rgb(a, b, 0.35)
+
+    def test_mix_rgb_channels(self):
+        assert mix_rgb("#000000", "#102030", 0.5) == (8, 16, 24)
+
+    def test_result_always_valid_hex(self):
+        result = mix("#123456", "#fedcba", 0.37)
+        assert strip_hex(result) == result[1:]
+
+
+class TestLuminanceAndContrast:
+    def test_luminance_bounds(self):
+        assert relative_luminance("#000000") == 0.0
+        assert relative_luminance("#ffffff") == pytest.approx(1.0)
+
+    def test_luminance_gray_known_value(self):
+        # WCAG reference: mid-gray sRGB ≈ 0.2159
+        assert relative_luminance("#777777") == pytest.approx(0.1841, abs=1e-3)
+
+    def test_contrast_black_white_is_21(self):
+        assert contrast_ratio("#000000", "#ffffff") == pytest.approx(21.0)
+
+    def test_contrast_identical_is_1(self):
+        assert contrast_ratio("#4f9eea", "#4f9eea") == pytest.approx(1.0)
+
+    def test_contrast_symmetric(self):
+        assert contrast_ratio("#14161c", "#d6dae2") == contrast_ratio("#d6dae2", "#14161c")
+
+    def test_default_theme_core_pair_meets_aa(self):
+        ratio = contrast_ratio("#d6dae2", "#14161c")
+        assert ratio >= 4.5

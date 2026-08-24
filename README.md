@@ -12,8 +12,20 @@ user overrides, rollback, and a security model for third-party themes.
 
 ## Status
 
-**Session 01 — foundation committed.** Research and architecture are decided;
-implementation of the renderer and adapters has not begun.
+**Session 02 — theme model and color engine committed.**
+
+- Semantic theme model (`core/theme_model.py`): required metadata, 28
+  semantic roles + full ANSI ramp (`color0`–`color15`)
+- TOML loading with strict errors (`core/theme_loader.py`, stdlib `tomllib`)
+- Color engine: `#RRGGBB` (+ documented `#RGB` normalization), mixing,
+  WCAG luminance/contrast (`core/color.py`)
+- Validation API + `omni-theme theme validate <ref> [--json] [--strict]`
+  (`core/validation.py`, `core/cli.py`) — WCAG-derived contrast warnings,
+  never invented thresholds
+- Neutral dark default theme in `themes/default/` (original generated
+  wallpaper; see `scripts/generate_default_wallpaper.py`)
+
+Session 01 groundwork:
 
 - `docs/research/ENVIRONMENT.md` — verified machine/tooling inventory
 - `docs/research/OMARCHY_THEMING.md` — upstream design study
