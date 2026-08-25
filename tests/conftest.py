@@ -11,6 +11,10 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+from core.activation import ActivationContext  # noqa: E402
+from core.state import RuntimeState  # noqa: E402
+from core.staging import Manifest  # noqa: E402
+
 # A complete, known-good palette mirroring themes/default. Inlined on
 # purpose so these tests stay hermetic w.r.t. shipped assets.
 _SEMANTIC = {
@@ -157,3 +161,64 @@ def fake_home(tmp_path, monkeypatch):
     for var in ("XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_STATE_HOME"):
         monkeypatch.delenv(var, raising=False)
     return home
+
+
+FIXED_TIMESTAMP = "2026-01-01T00:00:00+00:00"
+
+
+@pytest.fixture
+def context_factory(tmp_path, make_theme):
+    """Build an ActivationContext against a sandbox state root.
+
+    ``files`` accepts (name, source, target, adapter, staged) tuples that
+    become manifest entries; matching staged placeholder files are created
+    under the generation dir.
+    """
+
+    def factory(*, theme=None, files=(), state_root=None, timestamp=FIXED_TIMESTAMP):
+        generation = tmp_path / "generation"
+        generation.mkdir(parents=True, exist_ok=True)
+        entries = []
+        for name, source, target, adapter, staged in files:
+            artifact = generation / staged
+            artifact.parent.mkdir(parents=True, exist_ok=True)
+            if not artifact.exists():
+                artifact.write_text("placeholder\n")
+            entries.append(
+                _entry(name=name, source=source, target=target,
+                       adapter=adapter, staged=staged)
+            )
+        manifest = Manifest(
+            theme_name="Test",
+            theme_id="test",
+            theme_version=1,
+            mode="dark",
+            theme_source=Path("."),
+            timestamp=timestamp,
+            ownership="base",
+            files=tuple(entries),
+        )
+        return ActivationContext(
+            state_root=state_root or tmp_path / "state",
+            generation_dir=generation,
+            manifest=manifest,
+            theme=theme,
+            dry_run=False,
+            previous_state=RuntimeState(),
+        )
+
+    return factory
+
+
+def _entry(*, name, source, target, adapter, staged):
+    from core.staging import ManifestFileEntry
+
+    return ManifestFileEntry(
+        name=name,
+        source=source,
+        origin="builtin",
+        target=str(target),
+        adapter=adapter,
+        hash="0" * 64,
+        staged=staged,
+    )
