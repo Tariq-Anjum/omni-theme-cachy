@@ -30,7 +30,14 @@ omni = "core.cli:main"
 omni-theme = "core.cli:main"
 
 [tool.setuptools]
-packages = ["core", "adapters", "adapters.kde"]
+packages = [
+  "core",
+  "adapters",
+  "adapters.kde",
+  "adapters.gtk",
+  "adapters.vscode",
+  "adapters.konsole",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
