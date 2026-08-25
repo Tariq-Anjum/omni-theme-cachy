@@ -236,35 +236,35 @@ class TestValidateThemeDir:
 
 class TestCli:
     def test_validate_default_via_cli_ok(self, capsys):
-        from core.cli import main
+        from core.cli import ExitCode, main
         exit_code = main(["theme", "validate", "default", "--root", str(PROJECT_ROOT / "themes")])
-        assert exit_code == 0
+        assert exit_code == ExitCode.SUCCESS
         out = capsys.readouterr().out
         assert "OK" in out
 
     def test_validate_json_output(self, make_theme, tmp_path, capsys):
-        from core.cli import main
+        from core.cli import ExitCode, main
         broken = make_theme(colors={"accent": "nothex"})
         code = main(["theme", "validate", str(broken), "--json"])
-        assert code == 1
+        assert code == ExitCode.VALIDATION_ERROR
         import json
         payload = json.loads(capsys.readouterr().out)
         assert payload["ok"] is False
         assert any(i["code"] == "BAD_COLOR" for i in payload["issues"])
 
-    def test_validate_unknown_reference_exit_2(self, tmp_path, capsys):
-        from core.cli import main
+    def test_validate_unknown_reference_exit(self, tmp_path, capsys):
+        from core.cli import ExitCode, main
         code = main(["theme", "validate", "ghost", "--root", str(tmp_path)])
-        assert code == 2
+        assert code == ExitCode.INTERNAL_ERROR
         err = capsys.readouterr().err
         assert "error:" in err
 
     def test_strict_fails_on_warnings(self, tmp_path):
-        from core.cli import main
+        from core.cli import ExitCode, main
         # warnings-only theme: no [wallpaper] section → NO_WALLPAPER warning
         theme_dir = write_theme(
             tmp_path / "warny",
             theme_toml='[theme]\nname="T"\nid="t"\nversion=1\nmode="dark"\n',
         )
-        assert main(["theme", "validate", str(theme_dir)]) == 0
-        assert main(["theme", "validate", str(theme_dir), "--strict"]) == 1
+        assert main(["theme", "validate", str(theme_dir)]) == ExitCode.SUCCESS
+        assert main(["theme", "validate", str(theme_dir), "--strict"]) == ExitCode.VALIDATION_ERROR

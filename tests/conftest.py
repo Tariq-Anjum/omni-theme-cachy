@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 
@@ -164,6 +165,57 @@ def fake_home(tmp_path, monkeypatch):
 
 
 FIXED_TIMESTAMP = "2026-01-01T00:00:00+00:00"
+
+
+@pytest.fixture
+def state_root(tmp_path):
+    """A self-consistent, populated runtime state directory.
+
+    Mirrors what activation leaves behind: one active generation
+    (``gen-1``), one rollback target (``gen-0``), matching ``current`` /
+    ``previous`` symlinks and a recorded state.json — so ``status`` /
+    ``doctor`` see a consistent, non-empty runtime.
+    """
+    from core.state import CURRENT_LINK, PREVIOUS_LINK, ensure_layout, switch_link, write_state
+    from core.staging import manifest_to_dict
+    from core.staging import Manifest
+
+    root = ensure_layout(tmp_path / "state")
+
+    def _write_generation(gen_id: str, theme_name: str, theme_id: str) -> None:
+        gen_dir = root / "generations" / gen_id
+        gen_dir.mkdir(parents=True, exist_ok=True)
+        manifest = Manifest(
+            theme_name=theme_name,
+            theme_id=theme_id,
+            theme_version=1,
+            mode="dark",
+            theme_source=Path("themes"),
+            timestamp=FIXED_TIMESTAMP,
+            ownership="base",
+            files=(),
+        )
+        (gen_dir / "manifest.json").write_text(
+            json.dumps(manifest_to_dict(manifest), indent=2) + "\n"
+        )
+
+    _write_generation("gen-1", "Test", "test")
+    _write_generation("gen-0", "Old", "old")
+    switch_link(root, CURRENT_LINK, "gen-1")
+    switch_link(root, PREVIOUS_LINK, "gen-0")
+    write_state(
+        root,
+        RuntimeState(
+            current_theme="test",
+            previous_theme="old",
+            activated_at="2026-01-01T00:00:00+00:00",
+            current_generation="gen-1",
+            previous_generation="gen-0",
+            managed_targets=(),
+            adapters={"kde": {"supported": True, "applied": True, "verified": True}},
+        ),
+    )
+    return root
 
 
 @pytest.fixture

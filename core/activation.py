@@ -147,6 +147,8 @@ class ActivationOutcome:
     core_changed: bool = False
     dry_run: bool = False
     rollback_performed: bool = False
+    #: Every live target the render pipeline plans to write (dry runs only).
+    planned_targets: tuple = ()
     conflicts: tuple = ()
     capabilities: tuple[AdapterCapability, ...] = ()
     adapter_results: tuple[AdapterResult, ...] = ()
@@ -155,7 +157,7 @@ class ActivationOutcome:
 
     @property
     def ok(self) -> bool:
-        return self.status in (STATUS_VERIFIED, STATUS_DEGRADED, STATUS_ROLLED_BACK)
+        return self.status in (STATUS_VERIFIED, STATUS_DEGRADED, STATUS_ROLLED_BACK, STATUS_DRY_RUN)
 
     def to_dict(self) -> dict:
         return {
@@ -169,6 +171,14 @@ class ActivationOutcome:
             "core_changed": self.core_changed,
             "dry_run": self.dry_run,
             "rollback_performed": self.rollback_performed,
+            "planned_targets": [
+                {
+                    "target": str(t.get("target")),
+                    "name": t.get("name"),
+                    "adapter": t.get("adapter"),
+                }
+                for t in self.planned_targets
+            ],
             "conflicts": [
                 {
                     "target": str(c.target),
@@ -622,6 +632,14 @@ def _activate_impl(
             theme_id=theme.meta.id,
             theme_name=theme.meta.name,
             theme_source=theme.path,
+            planned_targets=tuple(
+                {
+                    "target": str(Path(entry.target).expanduser()),
+                    "name": entry.name,
+                    "adapter": entry.adapter,
+                }
+                for entry in manifest.files
+            ),
             conflicts=tuple(conflicts),
             capabilities=tuple(_probe_capability(a, _dry_ctx(state_root, manifest, theme,
                                                               prior_state))
