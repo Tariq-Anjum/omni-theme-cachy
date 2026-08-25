@@ -47,7 +47,7 @@ Research and document:
 - **Surface Roles (`shell.toml`)**: how Omarchy defines UI controls, borders, alphas, and popups separately from base colors.
 - **Staging & Symlinks**: how Omarchy uses `~/.local/state/.../next-theme` and atomic symlinks for zero-downtime switching.
 
-The current documentation describes a clean staging directory, user-theme overlay, template rendering, and promotion to current state via atomic symlink switching. Preserve those architectural ideas where appropriate. [Source: Omarchy theming documentation]
+The current documentation describes a clean staging directory, user-theme overlay, user-wide template, and promotion to current state via atomic symlink switching. Preserve those architectural ideas where appropriate. [Source: Omarchy theming documentation]
 
 Create:
 ```text
