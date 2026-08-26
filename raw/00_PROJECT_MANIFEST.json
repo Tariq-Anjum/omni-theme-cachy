@@ -1,0 +1,20 @@
+{
+  "project": "omni-theme-cachy",
+  "current_baseline": "Session 7 completed",
+  "next_sessions": [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18],
+  "primary_platform": "CachyOS with KDE Plasma 6",
+  "source_directories": ["src", "tests"],
+  "documentation_directory": "docs",
+  "preferred_test_command": "pytest -q",
+  "required_quality_check": "git diff --check",
+  "runtime_scope": "user-local configuration and data only",
+  "protected_paths": ["/etc", "/usr", "/bin", "/boot", "/var/lib"],
+  "security_requirements": [
+    "canonicalize paths before validation",
+    "resolve symlinks before writes",
+    "reject paths outside approved roots",
+    "use atomic writes for configuration replacement",
+    "preserve rollback guarantees"
+  ],
+  "completion_rule": "Do not start a later session while the selected session is blocked."
+}

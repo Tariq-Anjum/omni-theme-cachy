@@ -1,209 +1,78 @@
-# Session 14 — Agent Ergonomics: `--yes`, `--json`, and `omni commands`
+# Session 14 — Agent CLI, `--yes`, and `commands.json`
 
-## Objective
+> Read `00_AGENT_EXECUTION_CONTRACT.md` and `00_PROJECT_MANIFEST.json` first.
 
-Make Omni a predictable command-line API for AI agents and automation.
+## Agent Objective
 
-This is especially important because OpenCode/Hermes-style agents should not need to parse human prose.
+Make the CLI deterministic for both humans and AI agents, with explicit non-interactive behavior and a machine-readable command contract.
 
-## OpenCode tools
+## Command Contract
 
-Use:
+Preserve existing command names. Document the actual names in the repository, using this behavior model:
 
-- `read`
-- `glob`
-- `grep`
-- `bash`
-- `edit`
-- `write`
-- `lsp`
+| Operation | Default | `--yes` | Success exit code |
+|---|---|---|---:|
+| Preview | Non-interactive | No change | 0 |
+| Doctor | Non-interactive | No change | 0 when healthy |
+| Status | Non-interactive | No change | 0 |
+| Apply | Ask for confirmation | Skip confirmation | 0 |
+| Rollback | Ask for confirmation | Skip confirmation | 0 |
 
-Free/open-source utilities:
+Use nonzero exit codes for invalid input, failed activation, failed rollback, and unhealthy diagnostics according to existing conventions.
 
-```bash
-rg
-fd
-jq
-python
-pytest
-git
-```
+## Implementation Requirements
 
-## Step 1 — Audit all mutating commands
+- `--yes` must skip only confirmation prompts; it must not skip validation, backups, tests, or rollback logic.
+- Piped or non-interactive execution must never hang waiting for input.
+- Invalid commands and themes produce concise errors and nonzero exit codes.
+- Output should be stable enough for an agent to parse.
+- JSON output, if already supported, must remain valid and consistent.
+- `commands.json` must describe the actual commands, arguments, effects, confirmation requirements, and exit behavior.
 
-```bash
-rg -n "def .*command|@.*command|theme apply|rollback|wallpaper set|write|modify|install" core/cli.py
-```
+Use the existing CLI framework and schema conventions. Do not invent a parallel command system.
 
-Create a table:
+## Required Tests
 
-```text
-command
-mutates?
---yes?
---dry-run?
---json?
-confirmation?
-```
+- Confirmation accepted.
+- Confirmation declined.
+- `--yes` apply.
+- `--yes` rollback.
+- Non-interactive apply without `--yes` fails safely rather than hanging.
+- Invalid command.
+- Invalid theme.
+- Adapter failure.
+- Rollback failure.
+- Machine-readable output, if supported.
 
-## Step 2 — Standardize `--yes`
+## Do Not Do
 
-If Click is used:
+- Do not bypass safety checks with `--yes`.
+- Do not silently change existing command names.
+- Do not print secrets or full environment data.
+- Do not require a graphical session for CLI tests.
 
-```python
-def yes_option(function):
-    return click.option(
-        "--yes",
-        is_flag=True,
-        default=False,
-        help="Skip confirmation prompts for automation.",
-    )(function)
-```
-
-Apply to all mutating commands.
-
-Do not add `--yes` to read-only commands just for consistency.
-
-## Step 3 — Prevent prompt leaks
-
-Tests should invoke commands with:
-
-```python
-runner.invoke(cli, ["theme", "apply", "default", "--yes"], input="")
-```
-
-and assert:
-
-```text
-no prompt
-no hang
-deterministic exit code
-```
-
-## Step 4 — JSON output contract
-
-Ensure mutating and inspection commands support JSON when structured output is meaningful.
-
-Prefer:
-
-```text
-omni theme list --json
-omni theme current --json
-omni theme preview default --json
-omni theme apply default --dry-run --json
-omni status --json
-omni doctor --json
-```
-
-For a real apply:
-
-```text
-omni theme apply default --yes --json
-```
-
-Keep stdout valid JSON.
-
-## Step 5 — `omni commands --json`
-
-Implement:
-
-```bash
-omni commands
-omni commands --json
-```
-
-Example JSON:
-
-```json
-{
-  "theme": [
-    "list",
-    "current",
-    "apply",
-    "validate",
-    "preview",
-    "rollback"
-  ],
-  "wallpaper": [
-    "list",
-    "current",
-    "set"
-  ],
-  "doctor": null,
-  "status": null,
-  "version": null
-}
-```
-
-Also include machine-readable metadata where practical:
-
-```json
-{
-  "name": "theme.apply",
-  "mutates": true,
-  "supports_yes": true,
-  "supports_json": true,
-  "supports_dry_run": true
-}
-```
-
-Prefer metadata over a minimal command-tree-only format because agents can decide whether an operation is safe.
-
-## Step 6 — Stable schema version
-
-All JSON output from Omni should include:
-
-```json
-"schema_version": 1
-```
-
-Do not make agents infer schema versions from command output text.
-
-## Step 7 — Tests
-
-Create:
-
-```text
-tests/unit/test_cli_agent_ergonomics.py
-```
-
-Test:
-
-```text
-commands --json valid
-all mutating commands expose --yes
-apply --yes does not prompt
-dry-run + json is parseable
-stdout-only JSON
-stable schema_version
-```
-
-## Step 8 — Verification
+## Commands
 
 ```bash
 pytest -q
-omni commands --json | jq .
-omni theme apply default --dry-run --yes --json | jq .
-omni doctor --json | jq .
-omni status --json | jq .
+<project-cli> --help
+<project-cli> doctor
+<project-cli> status
+<project-cli> apply --help
+<project-cli> rollback --help
+git diff --check
 ```
 
-## Exit condition
+Replace `<project-cli>` with the existing executable name discovered in the repository.
 
-An agent can safely discover:
+## Acceptance Checklist
 
-```text
-what commands exist
-which commands mutate
-which commands support dry-run
-which commands support JSON
-```
+- [ ] All commands have deterministic non-interactive behavior.
+- [ ] `--yes` skips confirmation only.
+- [ ] `commands.json` matches the implemented CLI.
+- [ ] Failure and exit-code behavior is tested.
+- [ ] Tests pass.
 
-without parsing `--help`.
+## Final Response
 
-## Commit
-
-```bash
-git add core tests docs
-git commit -m "feat: add agent-friendly --yes and commands JSON API"
-```
+Use the format in `00_AGENT_EXECUTION_CONTRACT.md` and stop after Session 14.

@@ -1,182 +1,59 @@
-# Session 10 — Reconcile the Implementation with Real Omarchy Quattro Architecture
+# Session 10 — Omarchy Compatibility Reconciliation
 
-## Objective
+> Read `00_AGENT_EXECUTION_CONTRACT.md` and `00_PROJECT_MANIFEST.json` first.
 
-Perform a factual reconciliation pass against current Omarchy Quattro.
+## Agent Objective
 
-This session is a correction gate. Do not assume the earlier interpretation of Omarchy is correct.
+Compare the existing Omni Theme Cachy behavior with the project's stated Omarchy compatibility requirements and implement only demonstrated gaps.
 
-The canonical Omarchy Quattro theming documentation currently describes:
+## Strict Scope
 
-- first-party themes under `themes/<name>/`
-- optional user themes under `~/.config/omarchy/themes/<name>/`
-- staging under `~/.local/state/omarchy/current/next-theme`
-- user templates under `~/.config/omarchy/themed/`
-- built-in templates
-- semantic `colors.toml`
-- `shell.toml` surface/style roles
-- theme files taking precedence over generated template output. citeturn576446view0
+This is a compatibility audit, not a rewrite.
 
-At the same time, the Omarchy shell itself is a Quickshell/QML system and must not be imported into the KDE engine.
+- Do not replace the current architecture.
+- Do not copy Omarchy implementation code.
+- Do not add undocumented Omarchy dependencies.
+- Do not change completed behavior without a failing acceptance test.
+- Do not convert optional behavior into a core dependency.
 
-## OpenCode tools
+## Procedure
 
-Use:
+1. Read the current architecture and completed-session tests.
+2. Extract the compatibility requirements already documented in the repository.
+3. Build a small table with: requirement, current behavior, gap, minimal change, and proving test.
+4. Implement only rows with a confirmed gap.
+5. Add regression tests for every change.
 
-- `read`
-- `glob`
-- `grep`
-- `bash`
-- `edit`
-- `write`
-- `websearch`
-- `webfetch`
+## Required Compatibility Checks
 
-Use free/open-source tools:
+Verify the documented behavior for:
 
-```bash
-rg
-fd
-python
-git
-pytest
-jq
-```
+- Theme model and color resolution.
+- Template rendering and staging.
+- Activation, state capture, and rollback.
+- KDE Plasma integration.
+- GTK, VS Code, and terminal adapters.
+- CLI preview, doctor, status, apply, and rollback.
+- User-local path and security boundaries.
 
-## Step 1 — Read actual Omni model
+If a requirement is ambiguous or not represented by an existing test, stop and report it instead of guessing.
 
-Read:
-
-```text
-core/theme_model.py
-core/theme_loader.py
-core/renderer.py
-core/staging.py
-core/targets.py
-docs/research/OMARCHY_ARCHITECTURE.md
-docs/research/OMARCHY_THEMING.md
-```
-
-in full.
-
-## Step 2 — Verify Omarchy architecture from source
-
-Use web search/fetch against:
-
-```text
-https://github.com/basecamp/omarchy/tree/quattro
-https://github.com/basecamp/omarchy/blob/quattro/docs/theming.md
-https://github.com/basecamp/omarchy/blob/quattro/shell/README.md
-```
-
-Do not rely on copied claims in previous sessions.
-
-Document exact facts.
-
-## Step 3 — Reconcile terminology
-
-Do not remove `surfaces.toml` merely because current Omarchy has a shell configuration model.
-
-Instead document:
-
-```text
-Omni surfaces.toml
-    = adapter-neutral semantic surface model
-
-Omarchy shell.toml
-    = Omarchy Quickshell shell-specific surface/style model
-
-Omarchy shell.json
-    = shell configuration/layout/plugin state
-
-KDE Plasma
-    = native panel/widget/window configuration
-```
-
-These are not one-to-one equivalents.
-
-## Step 4 — Add divergence document
-
-Create:
-
-```text
-docs/architecture/DIVERGENCE_FROM_OMARCHY.md
-```
-
-Required sections:
-
-```text
-Why Omni uses Omarchy as research
-What Omni borrowed
-What Omni intentionally changed
-Why KDE needs adapters
-Why shell.json is not reproduced
-Why surfaces.toml remains
-What is explicitly out of scope
-```
-
-## Step 5 — Leakage audit
-
-Create:
-
-```text
-scripts/audit_omarchy_divergence.py
-```
-
-Use:
-
-```python
-from pathlib import Path
-import re
-import sys
-
-FORBIDDEN = re.compile(r"quickshell|hyprland|\.qml\b", re.I)
-ROOTS = ("core", "adapters", "hooks", "scripts", "templates")
-
-def main() -> int:
-    hits = []
-    for root in ROOTS:
-        path = Path(root)
-        if not path.exists():
-            continue
-        for item in path.rglob("*"):
-            if not item.is_file():
-                continue
-            if item.suffix not in {".py", ".toml", ".json", ".md", ".tpl"}:
-                continue
-            text = item.read_text(encoding="utf-8", errors="ignore")
-            if FORBIDDEN.search(text):
-                hits.append(str(item))
-    if hits:
-        print("Unexpected Hyprland/Quickshell references:")
-        for item in hits:
-            print(f"  {item}")
-        return 1
-    print("Clean: no unintended Hyprland/Quickshell leakage.")
-    return 0
-
-if __name__ == "__main__":
-    raise SystemExit(main())
-```
-
-Important: a research document describing Omarchy may legitimately contain these terms. The audit targets production code and generated templates, not the research corpus.
-
-## Step 6 — Test
+## Commands
 
 ```bash
-python scripts/audit_omarchy_divergence.py
 pytest -q
+pytest -q tests -k 'theme or activation or adapter or cli'
+git diff --check
 ```
 
-## Exit condition
+## Acceptance Checklist
 
-The codebase clearly communicates:
+- [ ] A compatibility table exists in the final report or project documentation.
+- [ ] Every implementation change is tied to a documented gap.
+- [ ] No architecture rewrite or new undocumented dependency was introduced.
+- [ ] Regression tests prove each compatibility fix.
+- [ ] Full tests pass.
 
-> Omni Theme Engine is KDE Plasma-native and uses portable ideas from Omarchy; it is not an Omarchy port.
+## Final Response
 
-## Commit
-
-```bash
-git add docs/architecture/DIVERGENCE_FROM_OMARCHY.md scripts/audit_omarchy_divergence.py
-git commit -m "docs: reconcile Omni architecture with real Omarchy Quattro"
-```
+Use the format in `00_AGENT_EXECUTION_CONTRACT.md` and stop after Session 10.

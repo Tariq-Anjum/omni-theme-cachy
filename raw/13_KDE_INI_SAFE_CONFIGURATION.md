@@ -1,195 +1,58 @@
-# Session 13 — KDE INI Configuration Safety and KWin/KDE State Preservation
+# Session 13 — Safe KDE INI Configuration
 
-## Objective
+> Read `00_AGENT_EXECUTION_CONTRACT.md` and `00_PROJECT_MANIFEST.json` first.
 
-Eliminate raw string mutation of KDE INI-style configuration.
+## Agent Objective
 
-The goal is to prevent duplicated sections, malformed files, lost user settings, and unintended corruption.
+Make KDE INI updates safe, targeted, rollback-compatible, and preserving of unrelated configuration.
 
-## Scope
+## Required Behavior
 
-Audit:
+Use the repository's existing configuration abstraction where available. For each supported KDE INI file:
 
-```text
-kwinrc
-kdeglobals
-konsolerc
-plasmarc
-other KDE .rc/.ini files touched by Omni
-```
+- Preserve unrelated sections and keys.
+- Preserve comments and formatting when supported by the selected parser.
+- Change only the required keys.
+- Validate the destination through the centralized path validator.
+- Create a rollback-safe snapshot before modification.
+- Write atomically using a temporary file and replacement.
+- Do not overwrite the original if parsing or writing fails.
+- Use locking if the existing activation design supports concurrent CLI calls.
 
-Do not rewrite files that Omni does not actually own.
+Identify exact files and keys from the current project code and tests. Do not guess KDE keys or introduce unrelated settings.
 
-## OpenCode tools
+## Required Tests
 
-Use:
+- Existing unrelated values survive an update.
+- Missing sections or keys are created safely when required.
+- Malformed input is rejected without destroying the original.
+- Atomic-write failure preserves the original.
+- Reapplying the same values is idempotent.
+- Rollback restores the exact prior content.
 
-- `read`
-- `glob`
-- `grep`
-- `bash`
-- `edit`
-- `write`
-- `websearch`
-- `webfetch`
+## Do Not Do
 
-Free/open-source:
+- Do not rewrite an entire configuration directory.
+- Do not change desktop settings outside the documented contract.
+- Do not use shell interpolation for file paths.
+- Do not use the real user's KDE configuration in tests.
 
-```bash
-rg
-fd
-fd
-python
-pytest
-git
-```
-
-## Step 1 — Locate raw mutations
+## Commands
 
 ```bash
-rg -n "\\[[A-Za-z0-9_:-]+\\]|write_text|open\\(|kwriteconfig|kreadconfig|configparser" core adapters hooks
+pytest -q
+pytest -q tests -k 'ini or kde or config or rollback'
+git diff --check
 ```
 
-Search specifically:
+## Acceptance Checklist
 
-```bash
-rg -n "kwinrc|kdeglobals|konsolerc|plasmarc" core adapters hooks
-```
+- [ ] Exact supported files and keys are documented.
+- [ ] Unrelated configuration is preserved.
+- [ ] Writes are atomic and rollback-compatible.
+- [ ] Malformed input cannot destroy the original.
+- [ ] Tests pass.
 
-## Step 2 — Choose mechanism per file
+## Final Response
 
-Do not assume Python `configparser` is always the best option.
-
-Preferred order:
-
-1. KDE native configuration CLI/API if available and documented.
-2. A dedicated parser that understands the file format.
-3. `configparser` only when the file is genuinely compatible with its semantics.
-
-This matters because KDE config files can have semantics that a generic INI parser may not preserve perfectly.
-
-## Step 3 — Generic helper
-
-If repeated safe INI operations exist, create:
-
-```text
-core/kde_config.py
-```
-
-Example:
-
-```python
-from pathlib import Path
-import configparser
-
-def set_ini_key(
-    path: Path,
-    section: str,
-    key: str,
-    value: str,
-) -> None:
-    parser = configparser.ConfigParser(interpolation=None)
-    parser.optionxform = str
-
-    if path.exists():
-        parser.read(path, encoding="utf-8")
-
-    if not parser.has_section(section):
-        parser.add_section(section)
-
-    parser.set(section, key, value)
-
-    tmp = path.with_suffix(path.suffix + ".tmp")
-    with tmp.open("w", encoding="utf-8") as handle:
-        parser.write(handle, space_around_delimiters=False)
-
-    tmp.replace(path)
-```
-
-Do not copy this blindly if the target file requires KDE-specific semantics.
-
-## Step 4 — KWin helper
-
-If code modifies a KWin setting, create a dedicated function such as:
-
-```python
-set_kwin_setting(...)
-```
-
-It must:
-
-- read existing state;
-- modify only the requested key;
-- preserve unrelated keys;
-- avoid duplicate sections;
-- write atomically;
-- participate in ownership/hash tracking;
-- have rollback.
-
-## Step 5 — Tests
-
-Create:
-
-```text
-tests/unit/test_kde_config.py
-tests/unit/test_kwin_config.py
-```
-
-Test:
-
-```text
-existing section
-missing section
-existing unrelated keys
-existing target key
-repeated application
-rollback
-format stability where required
-no duplicate section
-```
-
-Example:
-
-```python
-def test_does_not_duplicate_windows_section(tmp_path):
-    ...
-```
-
-## Step 6 — Verify ownership
-
-If the setting is not necessary for the theme engine's core purpose, do not modify it merely to create a "seamless" experience.
-
-The engine should avoid silently changing:
-
-```text
-window behavior
-tiling behavior
-KWin scripts
-global workflow preferences
-```
-
-unless explicitly part of the product scope.
-
-## Step 7 — KDE-native verification
-
-Where possible use:
-
-```bash
-kreadconfig6 ...
-kwriteconfig6 ...
-```
-
-only if actually installed.
-
-Never fail just because one optional helper binary is absent.
-
-## Exit condition
-
-No code path that writes KDE INI-like configuration uses naive section appending.
-
-## Commit
-
-```bash
-git add core adapters tests docs
-git commit -m "fix: make KDE configuration writes section-safe and atomic"
-```
+Use the format in `00_AGENT_EXECUTION_CONTRACT.md` and stop after Session 13.

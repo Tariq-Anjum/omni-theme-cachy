@@ -1,140 +1,53 @@
-# Session 16 — KWin Scope Hygiene and Optional Community Tiling Scripts
+# Session 16 — Optional KWin Scripts and Scope Hygiene
 
-## Objective
+> Read `00_AGENT_EXECUTION_CONTRACT.md` and `00_PROJECT_MANIFEST.json` first.
 
-Explicitly keep window-management behavior outside the core theme engine.
+## Agent Objective
 
-Omni targets:
+Keep KWin script support isolated and optional without affecting core theme activation, preview, doctor, status, apply, or rollback.
 
-```text
-KDE Plasma 6
-KWin
-traditional floating-window workflow
-mouse-driven desktop usage
-```
+## Required Behavior
 
-It must not silently install or enable third-party AUR software.
+- Detect whether KWin scripting is available.
+- Keep the feature disabled unless explicitly enabled by the user or existing configuration.
+- Do not fail core operations when KWin scripting is unavailable.
+- Validate all script paths through the central path-safety service.
+- Install or update only the documented KWin script files.
+- Preserve rollback behavior and avoid unrelated KWin configuration changes.
 
-## OpenCode tools
+## Required Tests
 
-Use:
+- KWin unavailable.
+- Feature disabled.
+- Feature enabled and installation succeeds.
+- Invalid or escaping script path.
+- Script installation failure.
+- Core activation remains successful when the optional feature fails or is absent.
+- Repeated installation is idempotent.
 
-- `read`
-- `glob`
-- `grep`
-- `bash`
-- `edit`
-- `write`
-- `websearch`
-- `webfetch`
+## Do Not Do
 
-Free/open-source utilities:
+- Do not make KWin scripts a core dependency.
+- Do not install scripts automatically without explicit enablement.
+- Do not modify unrelated KWin settings.
+- Do not require a live desktop session in unit tests.
 
-```bash
-rg
-fd
-python
-```
-
-## Step 1 — Auto-install audit
-
-Run:
+## Commands
 
 ```bash
-rg -n "pacman -S|yay -S|paru -S|paru |yay " core adapters hooks scripts install.sh
+pytest -q
+pytest -q tests -k 'kwin or optional or script'
+git diff --check
 ```
 
-Expected:
+## Acceptance Checklist
 
-```text
-no automatic AUR/system package installation
-```
+- [ ] KWin support is clearly optional.
+- [ ] Core functionality works without KWin.
+- [ ] Script paths are safely validated.
+- [ ] Failure behavior is tested and documented.
+- [ ] Tests pass.
 
-Installer dependency checks may tell users how to install prerequisites, but must not silently install them.
+## Final Response
 
-## Step 2 — KWin scope audit
-
-Search:
-
-```bash
-rg -n "kwin|tiling|krohnkite|kzones|polonium|plasmazones|BorderlessMaximizedWindows" core adapters hooks scripts docs
-```
-
-Classify each reference:
-
-```text
-theme-related
-optional behavior
-legacy
-unintended
-```
-
-Remove unintended tiling/window-management behavior from the core.
-
-## Step 3 — Documentation
-
-Create:
-
-```text
-docs/user/OPTIONAL_KWIN_SCRIPTS.md
-```
-
-Explain:
-
-> Omni Theme Engine does not install or manage window-tiling behavior.
-
-If documenting community scripts, verify current sources before publication.
-
-Do not imply endorsement or security review.
-
-## Step 4 — Borderless behavior
-
-If the project includes a setting such as:
-
-```text
-BorderlessMaximizedWindows
-```
-
-ensure it is:
-
-- explicitly opt-in;
-- safely parsed;
-- reversible;
-- documented.
-
-Do not automatically apply window-behavior changes as part of ordinary theme activation.
-
-## Step 5 — Tests
-
-Test:
-
-```text
-no package installer invocation
-no auto-enabling KWin scripts
-KWin config unchanged by normal theme application
-optional feature isolated if retained
-```
-
-## Exit condition
-
-A normal:
-
-```bash
-omni theme apply default --yes
-```
-
-does not:
-
-```text
-install packages
-enable scripts
-change tiling behavior
-replace KWin
-```
-
-## Commit
-
-```bash
-git add docs tests core adapters hooks scripts
-git commit -m "docs: isolate optional KWin behavior from theme activation"
-```
+Use the format in `00_AGENT_EXECUTION_CONTRACT.md` and stop after Session 16.

@@ -1,233 +1,80 @@
-# Session 09 — Documentation, Packaging, Acceptance, and Clean Release Candidate
+# Session 9 — Documentation, Packaging, and Acceptance
 
-## Objective
+> Read `00_AGENT_EXECUTION_CONTRACT.md` and `00_PROJECT_MANIFEST.json` first.
 
-Make the repository understandable, installable, testable, and honest about its capabilities.
+## Agent Objective
 
-This session is not "done because documentation exists." It is done only when documented commands match the actual implementation and real KDE behavior.
+Make the project installable, understandable, and verifiable from a clean checkout while preserving the existing runtime behavior.
 
-## OpenCode tools
+## Required Discovery
 
-Use:
+Read the current README, package metadata, CLI entry point, configuration examples, and CI files. Identify the project's actual package manager and test command before editing.
 
-- `read`
-- `glob`
-- `grep`
-- `bash`
-- `edit`
-- `write`
-- `lsp`
+## Required Deliverables
 
-Use free/open-source tools:
+Update or create only the documentation and packaging files needed for the existing architecture:
 
-```bash
-rg
-fd
-jq
-python
-pytest
-git
-```
+- Installation instructions.
+- Development setup instructions.
+- CLI usage reference.
+- Configuration reference.
+- Troubleshooting guide.
+- Security and path-scope notes.
+- Package metadata and console entry point, if missing.
+- Clean-install acceptance test or documented reproducible procedure.
 
-## Step 1 — Read repository state
+Every command in the documentation must be executable from a clean checkout or clearly marked as illustrative.
+
+## Packaging Requirements
+
+Support the project's existing installation model. If Python packaging is used, verify both:
 
 ```bash
-git status --short
-git log --oneline --decorate -30
-find . -maxdepth 3 -type f | sort
+python -m pip install .
+python -m pip install -e .
 ```
 
-Read:
+Do not add a second packaging system. Do not require root access. Do not install into protected system paths.
 
-```text
-README.md
-pyproject.toml
-AGENTS.md
-docs/research/*
-docs/architecture/*
-docs/user/*
-```
-
-## Step 2 — Required architecture docs
-
-Create/complete:
-
-```text
-docs/architecture/ARCHITECTURE.md
-docs/architecture/THEME_MODEL.md
-docs/architecture/ADAPTERS.md
-docs/architecture/ACTIVATION.md
-docs/architecture/OWNERSHIP_AND_SECURITY.md
-docs/architecture/DIVERGENCE_FROM_OMARCHY.md
-```
-
-Use Mermaid where it materially clarifies the design.
-
-## Step 3 — Required user docs
-
-Create/complete:
-
-```text
-docs/user/GETTING_STARTED.md
-docs/user/CREATING_THEMES.md
-docs/user/OVERRIDES.md
-docs/user/ROLLBACK.md
-docs/user/TROUBLESHOOTING.md
-docs/user/CLI.md
-docs/user/GTK.md
-docs/user/OPTIONAL_KWIN_SCRIPTS.md
-```
-
-Document unsupported features explicitly.
-
-## Step 4 — Omarchy divergence
-
-Document:
-
-### Borrowed architectural ideas
-
-- semantic palette
-- template-driven rendering
-- user customization
-- staged theme generation
-- atomic-ish state promotion
-- CLI ergonomics
-- non-interactive `--yes`
-- agent discoverability
-
-### Not borrowed
-
-- Hyprland
-- Quickshell
-- QML shell
-- Omarchy shell plugin manifest system
-- Hyprland IPC
-- shell layout replacement
-
-Current Omarchy Quattro's theming docs show theme staging, user theme overlays, user-wide templates, semantic `colors.toml`, and `shell.toml` surface/style roles; those ideas are inspiration for the theme-generation layer. Its Quickshell shell is a separate system. citeturn576446view0turn576446view2
-
-## Step 5 — Theme overrides documentation
-
-Document:
-
-```text
-~/.config/omni-theme/
-```
-
-and explicitly explain precedence.
-
-Recommended model:
-
-```text
-built-in theme
-    < user theme overlay
-    < user template override
-    < explicit target policy
-```
-
-Do not accidentally imply that Omni duplicates Omarchy's `shell.json`.
-
-## Step 6 — Packaging
+## Acceptance Tests
 
 Verify:
 
-```text
-pyproject.toml
-```
+- A clean environment can install the package.
+- The CLI entry point is available after installation.
+- The documented preview, doctor, status, apply, and rollback commands match the implementation.
+- Documentation does not claim unsupported platforms or features.
+- Existing tests remain green.
 
-contains a normal executable entry point:
+## Do Not Do
 
-```text
-omni
-```
+- Do not redesign the CLI.
+- Do not add undocumented dependencies.
+- Do not copy generated build artifacts into source control unless the repository already requires them.
+- Do not claim that a GUI integration works when only mocks were tested.
 
-Use an isolated virtual environment for testing.
-
-Do not require:
-
-```bash
-sudo pip install ...
-```
-
-Do not require global package installation.
-
-## Step 7 — Default theme
-
-Verify:
-
-```text
-themes/default/
-    theme.toml
-    colors.toml
-    surfaces.toml
-    wallpapers/
-```
-
-Do not ship copyrighted artwork.
-
-Use generated/simple assets or clearly licensed assets.
-
-## Step 8 — Acceptance test
-
-Run:
+## Commands
 
 ```bash
-python -m pytest
-python -m compileall core adapters
-
-omni theme list
-omni theme validate default
-omni theme preview default --json
-omni theme current --json
-omni status --json
-omni doctor --json
-```
-
-If KDE is available:
-
-```bash
-omni theme apply default --dry-run --json
-omni theme apply default --yes
-omni theme current --json
-omni status --json
-omni theme rollback --yes
-```
-
-Only claim KDE success if actually observed.
-
-## Step 9 — Repository hygiene
-
-Check:
-
-```bash
-git status --short
-git diff
+pytest -q
+python -m build
+python -m pip install .
+<project-cli> --help
+<project-cli> doctor
+<project-cli> status
 git diff --check
 ```
 
-Ensure:
+Skip a command only when the corresponding tool or project convention does not exist, and report that fact.
 
-```text
-no secrets
-no personal runtime state
-no caches
-no broken symlinks
-no temporary artifacts
-```
+## Acceptance Checklist
 
-## Exit condition
+- [ ] Installation and development setup are documented.
+- [ ] CLI and configuration references match the source.
+- [ ] Packaging succeeds using the repository's chosen system.
+- [ ] A clean-install smoke test passes.
+- [ ] No unsupported claims remain.
 
-The repo is:
+## Final Response
 
-- installable in an isolated environment;
-- documented;
-- tested;
-- honest about unsupported integrations;
-- safe to hand to the post-Session-09 reconciliation phase.
-
-## Commit
-
-```bash
-git add README.md docs pyproject.toml tests
- git commit -m "docs: complete architecture, user documentation, and acceptance baseline"
-```
+Use the format in `00_AGENT_EXECUTION_CONTRACT.md` and stop after Session 9.

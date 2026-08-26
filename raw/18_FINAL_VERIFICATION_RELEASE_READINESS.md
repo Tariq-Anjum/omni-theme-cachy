@@ -1,315 +1,72 @@
-# Session 18 — Final Verification, Release Readiness, Changelog, and Tagging
+# Session 18 — Final Verification and Release Readiness
 
-## Objective
+> Read `00_AGENT_EXECUTION_CONTRACT.md` and `00_PROJECT_MANIFEST.json` first.
 
-Close the post-Session-09 work only after the entire repository passes one integrated audit.
+## Agent Objective
 
-Do not tag or push a release merely because the command sequence completed.
+Perform a deterministic release-readiness check for Sessions 1–17. Fix only release-blocking defects directly demonstrated by the verification commands.
 
-## OpenCode tools
-
-Use:
-
-- `read`
-- `glob`
-- `grep`
-- `bash`
-- `edit`
-- `write`
-- `lsp`
-- `websearch`/`webfetch` for any remaining current platform claim
-
-Free/open-source tools:
-
-```bash
-rg
-fd
-jq
-python
-pytest
-git
-```
-
-## Step 1 — Clean state
+## Preflight
 
 ```bash
 git status --short
 git diff --check
 ```
 
-If unrelated changes exist, stop and report them.
+Review the diff for accidental files, secrets, protected-path changes, and undocumented dependencies.
 
-Do not delete user work.
+## Required Verification Sequence
 
-## Step 2 — Architecture audit
-
-Run:
+Run the commands supported by the repository in this order:
 
 ```bash
-python scripts/audit_omarchy_divergence.py
-python scripts/audit_write_paths.py
-```
-
-Expected:
-
-```text
-no unintended Hyprland/Quickshell leakage
-all candidate write paths reviewed
-```
-
-## Step 3 — Test suite
-
-Run:
-
-```bash
+python -m compileall src
 pytest -q
-python -m compileall core adapters hooks scripts
+python -m build
+<project-cli> --help
+<project-cli> doctor
+<project-cli> status
+<project-cli> preview <known-theme>
+<project-cli> apply --help
+<project-cli> rollback --help
+git diff --check
 ```
 
-If configured:
+Use the actual source directory, build command, CLI name, and known fixture theme discovered in the repository. Do not run real activation against the user's desktop unless an isolated test environment is explicitly provided.
 
-```bash
-ruff check .
-mypy .
-```
+## Release Checklist
 
-Do not introduce new linters at release time unless already part of project policy.
+- [ ] All tests pass.
+- [ ] Packaging succeeds.
+- [ ] CLI help and diagnostics work.
+- [ ] Preview is non-destructive.
+- [ ] Apply and rollback expose the expected confirmation behavior.
+- [ ] Security and symlink tests pass.
+- [ ] Optional integrations remain optional.
+- [ ] Documentation matches the implementation.
+- [ ] No secrets or generated artifacts were added.
+- [ ] No protected system paths are modified.
+- [ ] Working tree contains only intentional changes.
 
-## Step 4 — CLI acceptance
+## Defect Policy
 
-Run:
+Fix only defects that block the checklist or violate an explicit earlier-session contract. If a broader improvement is discovered, report it as a follow-up instead of expanding scope.
 
-```bash
-omni version
-omni commands --json | jq .
-omni theme list
-omni theme validate default
-omni theme preview default --json | jq .
-omni doctor --json | jq .
-omni status --json | jq .
-```
+## Final Report
 
-## Step 5 — Dry-run acceptance
-
-```bash
-omni theme apply default --dry-run --yes --json | jq .
-```
-
-Verify:
+Return exactly:
 
 ```text
-no live desktop changes
-no current symlink change
-no external configuration mutation
-no unresolved conflict
+Status: PASS or BLOCKED
+
+Verification:
+- command — PASS or FAIL
+
+Release blockers:
+- None, or exact blocker with failing command
+
+Follow-up notes:
+- None, or concise non-blocking observations
 ```
 
-## Step 6 — Real KDE acceptance
-
-Only if the current environment is the target KDE Plasma 6 workstation:
-
-```bash
-omni theme apply default --yes --json | jq .
-```
-
-Then verify:
-
-```text
-KDE Color Scheme
-wallpaper
-application adapters
-adapter status
-generated targets
-```
-
-Then:
-
-```bash
-omni status --json | jq .
-omni theme current --json | jq .
-```
-
-Then:
-
-```bash
-omni theme rollback --yes --json | jq .
-```
-
-Verify the previous state is actually restored.
-
-Do not claim GTK persistence unless the relevant KDE session lifecycle has been tested.
-
-## Step 7 — Installation smoke test
-
-Use a temporary HOME where practical:
-
-```bash
-tmp_home="$(mktemp -d)"
-
-HOME="$tmp_home" bash install.sh
-
-HOME="$tmp_home" \\
-PATH="$tmp_home/.local/bin:$PATH" \\
-omni version
-
-HOME="$tmp_home" \\
-PATH="$tmp_home/.local/bin:$PATH" \\
-omni theme list
-
-HOME="$tmp_home" \\
-PATH="$tmp_home/.local/bin:$PATH" \\
-omni commands --json
-```
-
-Clean up temporary test artifacts.
-
-## Step 8 — Documentation consistency
-
-Search for unsupported claims:
-
-```bash
-rg -n "supported|works|complete|universal|always|guaranteed|Hyprland|Quickshell|GTK" README.md docs
-```
-
-Review every positive claim.
-
-Change:
-
-```text
-"supports GTK"
-```
-
-to a capability-specific claim where necessary.
-
-Change:
-
-```text
-"works on KDE"
-```
-
-to an observed/tested claim.
-
-## Step 9 — Changelog
-
-Create/update:
-
-```text
-CHANGELOG.md
-```
-
-Document Sessions 04–18 by capability, not merely by commit.
-
-Include:
-
-```text
-activation/rollback
-KDE adapter
-application adapters
-CLI
-security
-Omarchy reconciliation
-GTK synchronization
-path safety
-KDE config safety
-agent ergonomics
-installer
-OpenCode integration
-final verification
-```
-
-## Step 10 — Release decision
-
-Only propose a tag if:
-
-```text
-all critical tests pass
-no unresolved security issue
-no known data-loss issue
-real KDE validation is documented or clearly marked unverified
-installer works
-CLI JSON works
-OpenCode commands load
-git tree is clean
-```
-
-If anything fails:
-
-```text
-do not tag
-do not push
-report exact blocker
-```
-
-## Step 11 — Release tag
-
-Only after the above passes:
-
-```bash
-git add CHANGELOG.md README.md docs .opencode opencode.json scripts tests core adapters hooks
-git commit -m "release: stabilize post-Session-09 architecture and agent integration"
-git tag -a v0.2.0 -m "omni-theme-cachy v0.2.0"
-```
-
-Before pushing:
-
-```bash
-git status --short
-git log --oneline --decorate -10
-git show --stat --oneline HEAD
-```
-
-Then:
-
-```bash
-git push origin main
-git push origin v0.2.0
-```
-
-Do not use force push.
-
-## Final report generated by the agent
-
-Create:
-
-```text
-docs/RELEASE_VERIFICATION.md
-```
-
-with:
-
-```text
-1. Implemented features
-2. Architecture changes
-3. KDE tests actually performed
-4. GTK behavior actually verified
-5. Application adapters verified
-6. Security tests
-7. Installer result
-8. OpenCode integration result
-9. Known limitations
-10. Git commits
-11. Release tag
-12. Exact unverified items
-```
-
-## Exit condition
-
-The project is release-ready only when the report distinguishes:
-
-```text
-implemented
-tested
-verified on real KDE
-supported but unverified
-unsupported
-known issue
-```
-
-Never collapse those into one "complete" label.
-
-## Commit
-
-```bash
-git add CHANGELOG.md docs/RELEASE_VERIFICATION.md
-git commit -m "docs: record final verification and release readiness"
-```
+Do not create a release, tag, commit, or push changes in this session.

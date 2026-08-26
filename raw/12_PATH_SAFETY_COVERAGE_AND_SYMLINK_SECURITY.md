@@ -1,205 +1,65 @@
-# Session 12 — Path Safety Coverage and Symlink-Safe Writes
+# Session 12 — Path Safety Coverage and Symlink Security
 
-## Objective
+> Read `00_AGENT_EXECUTION_CONTRACT.md` and `00_PROJECT_MANIFEST.json` first.
 
-Prove that every filesystem write path is protected by the central filesystem policy.
+## Agent Objective
 
-Session 08 audited security conceptually. This session turns that into measurable coverage.
+Close remaining path-safety gaps and prove that every adapter cannot write outside approved user-local roots, including through symlinks.
 
-## OpenCode tools
+## Required Design
 
-Use:
+Use one centralized path-validation function or service. Every adapter and file-writing helper must call it before writing.
 
-- `read`
-- `glob`
-- `grep`
-- `bash`
-- `edit`
-- `write`
-- `lsp`
+The validator must:
 
-Free/open-source utilities:
+- Resolve the intended destination against its approved root.
+- Canonicalize existing path components.
+- Safely handle missing final files and parent directories.
+- Resolve symlinks where possible.
+- Reject traversal, absolute escapes, sibling-prefix bypasses, and symlink escapes.
+- Return a deterministic error suitable for CLI display.
 
-```bash
-rg
-fd
-python
-pytest
-git
-```
+Use path-aware comparisons such as `Path.is_relative_to()` or an equivalent safe implementation; do not use string-prefix checks.
 
-## Step 1 — Identify the actual security primitive
+## Required Tests
 
-Read:
+Cover:
 
-```text
-core/filesystem.py
-core/staging.py
-```
+- `..` traversal.
+- Absolute outside paths.
+- Approved path and similarly named sibling path.
+- Symlinked file escaping the root.
+- Symlinked parent escaping the root.
+- Missing destination file inside an approved parent.
+- Existing valid destination.
+- Each adapter's actual write path.
+- A symlink created or changed between validation and write, where the implementation can safely test it.
 
-Find the real function(s) responsible for safe target resolution.
+Use temporary directories and skip platform-specific symlink tests only with an explicit reported reason.
 
-Do not rename working APIs solely to match this prompt.
+## Do Not Do
 
-Document:
+- Do not duplicate subtly different validation logic.
+- Do not follow user-controlled symlinks outside approved roots.
+- Do not use real system configuration in tests.
+- Do not broaden approved roots to make tests pass.
 
-```text
-function name
-signature
-root semantics
-symlink semantics
-exception type
-```
-
-## Step 2 — Enumerate writes
-
-Run:
+## Commands
 
 ```bash
-rg -n --glob '*.py' \\
-  "write_text|write_bytes|open\\\\(|Path\\\\(|os\\.replace|os\\.rename|os\\.symlink|shutil\\.copy|shutil\\.copy2|shutil\\.copytree" \\
-  core adapters hooks scripts
-```
-
-Build a review table internally:
-
-```text
-file
-operation
-target source
-expected root
-guard
-ownership
-test
-```
-
-## Step 3 — Guard every external target
-
-Every write outside an internally created temporary directory must have:
-
-```text
-trusted root
-validated candidate
-ownership decision
-atomic write strategy
-```
-
-Examples:
-
-```text
-~/.local/share/color-schemes
-~/.config/Code/User
-~/.local/state/omni-theme
-wallpaper cache
-terminal profile directory
-KDE user data
-```
-
-## Step 4 — Symlink attack cases
-
-Test:
-
-```text
-target is symlink to allowed file
-target is symlink to outside root
-parent directory is symlink
-candidate resolves outside root
-broken symlink
-dangling path that later becomes a symlink
-```
-
-Use an isolated tmp directory.
-
-## Step 5 — Atomic write helper
-
-If the project does not already have one, centralize:
-
-```python
-def atomic_write_text(path: Path, content: str, *, mode: int | None = None) -> None:
-    ...
-```
-
-Required behavior:
-
-```text
-validate path
-create temp sibling
-write
-flush
-fsync where appropriate
-replace atomically
-preserve intended permissions
-```
-
-Do not make callers repeat security logic.
-
-## Step 6 — Regression tests
-
-Create:
-
-```text
-tests/security/test_write_path_coverage.py
-tests/security/test_symlink_escape.py
-tests/security/test_atomic_write.py
-```
-
-Tests must assert traversal attempts fail.
-
-Do not use vague:
-
-```python
-pytest.raises(Exception)
-```
-
-when a precise project exception exists.
-
-## Step 7 — Static heuristic
-
-Create:
-
-```text
-scripts/audit_write_paths.py
-```
-
-It may use Python AST to list direct writes.
-
-Do not claim AST detection proves security.
-
-The script's purpose is reviewer assistance.
-
-Example:
-
-```python
-WRITE_ATTRS = {
-    "write_text",
-    "write_bytes",
-}
-
-OPEN_MODES = {"w", "wb", "a", "ab"}
-
-# Walk AST and print candidate writes for manual review.
-```
-
-## Step 8 — Run
-
-```bash
-python scripts/audit_write_paths.py
 pytest -q
-python -m compileall core adapters hooks scripts
+pytest -q tests -k 'path or symlink or security'
 git diff --check
 ```
 
-## Exit condition
+## Acceptance Checklist
 
-All external writes are either:
+- [ ] All file-writing code uses centralized validation.
+- [ ] Symlink and sibling-prefix attacks are tested.
+- [ ] Missing-file behavior is safe and deterministic.
+- [ ] No protected system path is accepted.
+- [ ] Full tests pass.
 
-- centrally guarded;
-- inside controlled staging/temp directories;
-- or explicitly documented as a native system operation that has its own safety/ownership contract.
+## Final Response
 
-## Commit
-
-```bash
-git add core tests scripts docs
-git commit -m "test: enforce path and symlink safety across all write paths"
-```
+Use the format in `00_AGENT_EXECUTION_CONTRACT.md` and stop after Session 12.
