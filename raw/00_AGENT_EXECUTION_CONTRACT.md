@@ -6,6 +6,21 @@ This contract is shared by Sessions 8–18. Read it before the selected session 
 
 Complete the Omni Theme Cachy implementation without redesigning completed work. Make the smallest safe change that satisfies the selected session's acceptance criteria.
 
+## Repository Layout
+
+This repository uses a top-level module layout:
+
+- `core/` — core implementation.
+- `adapters/` — KDE, GTK, Konsole, and VS Code adapters.
+- `tests/` — unit and integration tests.
+- `templates/` — templates.
+- `themes/` — theme assets.
+- `scripts/` — project scripts.
+- `hooks/` — project hooks.
+- `docs/` — documentation.
+
+Do not reinterpret this project as a `src/`-layout repository.
+
 ## Execution Rules
 
 1. Work only in the repository checkout and only on the selected session.
@@ -26,16 +41,16 @@ Before editing, run only the minimum discovery needed:
 ```bash
 pwd
 git status --short
-find . -maxdepth 2 -type f | sort
+find core adapters tests templates themes scripts hooks docs -maxdepth 2 -type f | sort
 ```
 
-Then read the files named in the selected session. Search for existing symbols before creating replacements:
+Then read the files named in the selected session. Search only the verified project directories for existing symbols before creating replacements:
 
 ```bash
-grep -R "class\|def\|def test_" -n src tests 2>/dev/null | head -200
+grep -R "class\|def\|def test_" -n core adapters tests | head -200
 ```
 
-Adapt paths if this repository uses a different source or test directory.
+Do not perform broad repository discovery unless a file or symbol explicitly required by the selected session is missing.
 
 ## Change Discipline
 
