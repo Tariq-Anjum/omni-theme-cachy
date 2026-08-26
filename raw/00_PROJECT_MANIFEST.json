@@ -4,6 +4,7 @@
   "repository": "Tariq-Anjum/omni-theme-cachy",
   "branch": "main",
   "current_baseline": "Session 7 completed",
+  "control_plane_authority": "raw/ manifests and session records are authoritative for execution state; README is descriptive documentation and must not override the control plane",
   "next_sessions": [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18],
   "primary_platform": "CachyOS with KDE Plasma 6",
   "source_directories": ["core", "adapters", "tests"],
@@ -19,7 +20,8 @@
     "entry_point": "core.cli:main",
     "build_command": null,
     "installer": null,
-    "known_theme_fixture": null
+    "known_theme_fixture": "themes/default",
+    "known_theme_fixture_status": "VERIFIED_EXISTS"
   },
   "architecture": {
     "activation": "core/activation.py",
@@ -60,13 +62,15 @@
   },
   "source_evidence": {
     "repository_layout": {"source": "repository tree", "status": "VERIFIED"},
+    "control_plane_authority": {"source": "raw/ execution control files", "status": "VERIFIED"},
+    "current_baseline": {"value": "Session 7 completed", "source": "current control-plane manifest", "status": "VERIFIED"},
     "cli_entry_point": {"value": "core.cli:main", "source": "pyproject.toml", "status": "VERIFIED"},
     "canonical_executable": {"value": "omni", "source": "pyproject.toml", "status": "VERIFIED"},
     "alias_executable": {"value": "omni-theme", "source": "pyproject.toml", "status": "VERIFIED"},
     "test_command": {"value": "pytest -q", "source": "project convention", "status": "VERIFIED"},
     "build_command": {"value": null, "source": "pyproject.toml", "status": "UNRESOLVED"},
     "installer": {"value": null, "source": "repository tree", "status": "UNRESOLVED"},
-    "known_theme_fixture": {"value": null, "source": "themes/", "status": "UNRESOLVED"},
+    "known_theme_fixture": {"value": "themes/default", "source": "themes/default/theme.toml and themes/default/colors.toml", "status": "VERIFIED_EXISTS", "acceptance_suitability": "VERIFY_PER_SESSION"},
     "ownership_policy": {"value": null, "source": "core/filesystem.py and core/validation.py", "status": "UNRESOLVED"},
     "opencode_integration": {"value": null, "source": "repository tree", "status": "UNRESOLVED"}
   },
