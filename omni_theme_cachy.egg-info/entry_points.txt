@@ -1,0 +1,3 @@
+[console_scripts]
+omni = core.cli:main
+omni-theme = core.cli:main

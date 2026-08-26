@@ -31,7 +31,7 @@ from core.state import (
     STATE_FILE,
     read_state,
 )
-from conftest import FULL_PALETTE
+from tests.conftest import FULL_PALETTE
 
 # ---------------------------------------------------------------------------
 # Fixtures and stubs

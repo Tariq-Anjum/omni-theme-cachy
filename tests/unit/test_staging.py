@@ -18,7 +18,7 @@ from core.staging import (
     stage_theme,
     write_manifest,
 )
-from conftest import FULL_PALETTE
+from tests.conftest import FULL_PALETTE
 
 REGISTRY_TWO = """
 [[template]]

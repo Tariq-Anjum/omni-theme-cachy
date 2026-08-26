@@ -36,7 +36,7 @@ class TestPlainSubstitution:
 
     def test_plain_name_beats_suffix_decomposition(self, tmp_path):
         """An explicit `x_rgb` role must win over `x` + `_rgb` filter."""
-        from conftest import write_theme
+        from tests.conftest import write_theme
 
         theme = load_theme(write_theme(tmp_path / "t", colors={"accent_rgb": "#112233"}))
         assert render_text("{{ accent_rgb }}", theme) == "#112233"
@@ -117,7 +117,7 @@ class TestMixHelpers:
 
 class TestKdeGradient:
     def test_vertical_angle_default(self, tmp_path):
-        from conftest import surfaces_toml_text, write_theme
+        from tests.conftest import surfaces_toml_text, write_theme
 
         theme = load_theme(write_theme(
             tmp_path / "t",
@@ -136,7 +136,7 @@ class TestKdeGradient:
         assert out.startswith("qlineargradient(x1:0, y1:1, x2:1, y2:0, ")
 
     def test_alpha_rendered_as_percentage(self, tmp_path):
-        from conftest import surfaces_toml_text, write_theme
+        from tests.conftest import surfaces_toml_text, write_theme
 
         theme = load_theme(write_theme(
             tmp_path / "t",
