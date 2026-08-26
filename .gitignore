@@ -1,1 +1,23 @@
-Nothing needs to be added to the .gitignore file based on the provided changes. The listed files are all Python test files and source code, which should not be ignored according to the rules.
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+build/
+dist/
+
+# Runtime state (never commit generated themes or snapshots)
+state/
+staging/
+current/
+
+# Editors / OS
+.idea/
+.vscode/
+.DS_Store
+
+# Local experiments
+*.local.toml
+*.log
