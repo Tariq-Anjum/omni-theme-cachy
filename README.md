@@ -12,38 +12,7 @@ user overrides, rollback, and a security model for third-party themes.
 
 ## Status
 
-**Control-plane baseline: Session 07 completed.**
-
-The authoritative execution state is maintained under `raw/`. This README is
-descriptive documentation and must not override the raw control-plane manifest
-or session records.
-
-- `adapters/kde/`: capability → plan → render → apply → verify →
-  rollback adapter driven by the core registry/event lifecycle
-- Color Scheme generation (`templates/kde/OmniTheme.colors.tpl`,
-  theme-tier override in the default theme) with an explicit, tested
-  palette→KDE mapping table; applied via `plasma-apply-colorscheme`;
-  verified through `kdeglobals` read-back
-- Wallpaper pipeline: validate → content-hash cache → native apply →
-  active-wallpaper read-back (qdbus6 scripting, appletsrc fallback);
-  per-theme journal for exact rollback restore
-- CLI: `omni theme validate|preview|apply|current|rollback`,
-  `omni status`, `omni wallpaper list|current|set`
-- Design + verified-command matrix:
-  `docs/architecture/KDE_ADAPTER.md`
-
-Earlier sessions:
-
-- Session 07 — completed implementation baseline; see `raw/` session records
-- Session 06 — see `raw/` session records
-- Session 05 — KDE Plasma 6 adapter: Color Scheme + wallpaper, verified live
-- Session 04 — activation state, atomic promotion, rollback, adapter
-  contract (`core/activation.py`, `core/state.py`, `core/adapters.py`)
-- Session 03 — template rendering, user overlays, safe staging
-  (`core/renderer.py`, `core/staging.py`)
-- Session 02 — semantic theme model, color engine, gradients, surface
-  roles (`core/theme_model.py`, `core/color.py`)
-- Session 01 — research groundwork under `docs/research/`
+New Project
 
 ## Layout
 

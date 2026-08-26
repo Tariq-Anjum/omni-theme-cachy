@@ -1,5 +1,14 @@
 # AGENTS.md
 
+Think before acting.
+Use the smallest sufficient context.
+Do not repeat information already available.
+Load capabilities only when required.
+Prefer existing tools over explaining how to use them.
+Make the smallest correct change.
+Verify before declaring success.
+Escalate only when evidence requires it.
+
 ## Git workflow
 
 - Canonical repo root: `omni-theme-cachy/` (not the parent `Theme/` folder).
