@@ -12,7 +12,11 @@ user overrides, rollback, and a security model for third-party themes.
 
 ## Status
 
-**Session 05 — KDE Plasma 6 adapter: Color Scheme + wallpaper, verified live.**
+**Control-plane baseline: Session 07 completed.**
+
+The authoritative execution state is maintained under `raw/`. This README is
+descriptive documentation and must not override the raw control-plane manifest
+or session records.
 
 - `adapters/kde/`: capability → plan → render → apply → verify →
   rollback adapter driven by the core registry/event lifecycle
@@ -30,6 +34,9 @@ user overrides, rollback, and a security model for third-party themes.
 
 Earlier sessions:
 
+- Session 07 — completed implementation baseline; see `raw/` session records
+- Session 06 — see `raw/` session records
+- Session 05 — KDE Plasma 6 adapter: Color Scheme + wallpaper, verified live
 - Session 04 — activation state, atomic promotion, rollback, adapter
   contract (`core/activation.py`, `core/state.py`, `core/adapters.py`)
 - Session 03 — template rendering, user overlays, safe staging
@@ -49,6 +56,7 @@ hooks/       Bash scripts for live reloading after activation
 tests/       pytest suites
 scripts/     Operational helper scripts
 docs/        research/, architecture/, user/
+raw/         agent execution control-plane manifests and session records
 ```
 
 ## Principles
