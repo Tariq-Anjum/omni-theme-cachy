@@ -70,7 +70,11 @@ class TestAtomicWrite:
         target = tmp_path / "f"
         for i in range(3):
             filesystem.atomic_write(target, f"v{i}".encode())
-        assert [p.name for p in tmp_path.iterdir()] == ["f"]
+        leftovers = [
+            p.name for p in tmp_path.iterdir()
+            if p.name.startswith(".") and p.name.endswith(".tmp")
+        ]
+        assert leftovers == []
 
     def test_failed_replace_keeps_old_content(self, tmp_path, monkeypatch):
         target = tmp_path / "f"

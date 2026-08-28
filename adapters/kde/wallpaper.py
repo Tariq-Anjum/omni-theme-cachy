@@ -33,7 +33,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from core.errors import AdapterError
-from core.filesystem import atomic_write_text, sha256_file
+from core.filesystem import atomic_write_text, sha256_file, validate_write_target
 
 from adapters.kde.config import run_command
 from adapters.kde.detection import TOOL_PLASMA_APPLY_WALLPAPERIMAGE, TOOL_QDBUS6
@@ -135,6 +135,7 @@ def ensure_cached(source: str | Path, target: str | Path) -> Path:
         not target_path.exists()
         or sha256_file(target_path) != sha256_file(source_path)
     ):
+        validate_write_target(target_path)
         shutil.copyfile(source_path, target_path)
     return target_path
 

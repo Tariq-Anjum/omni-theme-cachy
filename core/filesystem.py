@@ -33,6 +33,8 @@ from datetime import datetime, timezone
 from hashlib import sha256
 from pathlib import Path
 
+from core.errors import PathPolicyError
+
 __all__ = [
     "home_dir",
     "xdg_config_home",
@@ -45,6 +47,9 @@ __all__ = [
     "state_previous_dir",
     "state_staging_dir",
     "state_backups_dir",
+    "approved_roots",
+    "set_approved_roots",
+    "validate_write_target",
     "sha256_bytes",
     "sha256_file",
     "ensure_dir",
@@ -128,6 +133,121 @@ def state_backups_dir() -> Path:
 
 
 # ---------------------------------------------------------------------------
+# Central write policy: approved roots, containment, ownership
+# ---------------------------------------------------------------------------
+#
+# Every managed filesystem write must pass through :func:`validate_write_target`
+# (enforced inside :func:`atomic_write`, which is the engine's only write
+# primitive). The approved write-target set is exactly the XDG-derived base
+# directories defined above — nothing broader is ever approved.
+
+_approved_roots_override: tuple[Path, ...] | None = None
+
+
+def set_approved_roots(roots) -> None:
+    """Override the approved write roots (test/sandbox hook; ``None`` restores
+    the XDG-derived defaults). Values may be relative to the current env."""
+    global _approved_roots_override
+    _approved_roots_override = (
+        None if roots is None else tuple(Path(r).expanduser() for r in roots)
+    )
+
+
+def approved_roots() -> tuple[Path, ...]:
+    """The single named allowlist of writable roots, resolved at call time.
+
+    Defaults to the XDG-derived base directories (``$XDG_CONFIG_HOME``,
+    ``$XDG_DATA_HOME``, ``$XDG_STATE_HOME``). Every engine-owned write
+    destination — state tree, staging, overlays, adapter targets —
+    resolves inside one of these.
+    """
+    if _approved_roots_override is not None:
+        return tuple(p.resolve(strict=False) for p in _approved_roots_override)
+    return (
+        xdg_config_home().resolve(strict=False),
+        xdg_data_home().resolve(strict=False),
+        xdg_state_home().resolve(strict=False),
+    )
+
+
+def _containing_root(resolved: Path) -> Path | None:
+    for root in approved_roots():
+        if resolved == root or root in resolved.parents:
+            return root
+    return None
+
+
+def _check_parent_ownership(node: Path) -> None:
+    st = node.stat()
+    mode = st.st_mode
+    if st.st_uid != os.geteuid():
+        raise PathPolicyError(
+            f"unsafe ownership: {node} is owned by uid {st.st_uid}, "
+            "not the current user"
+        )
+    if mode & 0o020:
+        raise PathPolicyError(f"unsafe permissions: {node} is group-writable")
+    if mode & 0o002 and not mode & 0o1000:
+        raise PathPolicyError(
+            f"unsafe permissions: {node} is world-writable without the sticky bit"
+        )
+
+
+def _check_target_ownership(target: Path) -> None:
+    st = target.stat()
+    mode = st.st_mode
+    if st.st_uid != os.geteuid():
+        raise PathPolicyError(
+            f"unsafe ownership: {target} is owned by uid {st.st_uid}, "
+            "not the current user"
+        )
+    if mode & 0o020:
+        raise PathPolicyError(f"unsafe permissions: {target} is group-writable")
+    if mode & 0o002:
+        raise PathPolicyError(f"unsafe permissions: {target} is world-writable")
+    if mode & 0o6000:
+        raise PathPolicyError(
+            f"unsafe permissions: {target} has setuid/setgid bits"
+        )
+
+
+def validate_write_target(path: str | Path) -> Path:
+    """Central gate for every managed filesystem write.
+
+    Canonicalizes *path*, resolves symlinks, then enforces:
+
+    * containment inside one :func:`approved_roots` entry (sibling-prefix
+      and ``..`` escapes are rejected; a nonexistent final component is
+      allowed, its existing ancestors must resolve inside the root);
+    * symlink escapes (resolution of any component leaving the root);
+    * the ownership policy: current-user ownership, no group/world
+      write bits, no setuid/setgid on the target, and no world-writable
+      (non-sticky) or group-writable parents up to the approved root.
+
+    Violations raise :class:`core.errors.PathPolicyError`; the engine
+    never repairs ownership or permissions. Returns the resolved path.
+    """
+    raw = Path(path).expanduser()
+    resolved = raw.resolve(strict=False)
+    root = _containing_root(resolved)
+    if root is None:
+        raise PathPolicyError(
+            f"write target {raw} resolves to {resolved}, which is outside "
+            "the approved write roots"
+        )
+    if resolved.exists():
+        _check_target_ownership(resolved)
+    node = root if resolved == root else resolved.parent
+    while node != root:
+        if node.exists():
+            _check_parent_ownership(node)
+        node = node.parent
+    if root.exists():
+        _check_parent_ownership(root)
+    return resolved
+
+
+# ---------------------------------------------------------------------------
 # Hashing
 # ---------------------------------------------------------------------------
 
@@ -190,9 +310,11 @@ def atomic_write(
     flush; fsync; apply permissions (explicit *mode*, else preserve the
     existing file's mode, else ``0o644``); :func:`os.replace` over the
     destination. On failure the temp file is removed and the destination
-    keeps its previous bytes.
+    keeps its previous bytes. The target must pass
+    :func:`validate_write_target` (containment + ownership policy) or a
+    :class:`core.errors.PathPolicyError` is raised and nothing changes.
     """
-    target = Path(path).expanduser()
+    target = validate_write_target(path)
     parent = ensure_dir(target.parent)
 
     try:

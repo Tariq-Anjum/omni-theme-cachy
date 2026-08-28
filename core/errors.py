@@ -85,6 +85,13 @@ class ActivationError(ThemeError):
     integrity check, promotion hit an unexpected layout, …)."""
 
 
+class PathPolicyError(ThemeError):
+    """A filesystem write target violates the central path policy or the
+    ownership policy (outside approved roots, traversal/symlink escape,
+    unsafe owner or permission bits). Never auto-repaired: the engine
+    rejects and reports, preserving the original file."""
+
+
 class ConflictError(ThemeError):
     """A live target file diverged from the hash the engine last wrote
     there, and no explicit force policy was requested."""

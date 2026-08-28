@@ -132,6 +132,27 @@ def write_theme(
     return directory
 
 
+@pytest.fixture(autouse=True)
+def _approved_roots_sandbox(tmp_path, monkeypatch):
+    """Isolate every test's filesystem policy inside *tmp_path*.
+
+    HOME and the XDG variables are redirected into ``tmp_path`` so the
+    engine can never touch the real user environment, and the central
+    write-policy allowlist is pointed at the same sandbox. Containment
+    and ownership checks still run on every managed write.
+    """
+    from core import filesystem
+
+    home = tmp_path / "home"
+    home.mkdir()
+    monkeypatch.setenv("HOME", str(home))
+    for var in ("XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_STATE_HOME"):
+        monkeypatch.delenv(var, raising=False)
+    filesystem.set_approved_roots([tmp_path])
+    yield
+    filesystem.set_approved_roots(None)
+
+
 @pytest.fixture
 def palette_dict() -> dict[str, str]:
     return dict(FULL_PALETTE)
@@ -157,7 +178,7 @@ def fake_home(tmp_path, monkeypatch):
     directories created after this fixture never touch the real $HOME.
     """
     home = tmp_path / "home"
-    home.mkdir()
+    home.mkdir(exist_ok=True)
     monkeypatch.setenv("HOME", str(home))
     for var in ("XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_STATE_HOME"):
         monkeypatch.delenv(var, raising=False)

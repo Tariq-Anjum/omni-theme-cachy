@@ -83,8 +83,8 @@ class GtkJournal:
 
     def save(self) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        self.path.write_text(
-            json.dumps({"files": self.files}, indent=2) + "\n", encoding="utf-8"
+        atomic_write_text(
+            self.path, json.dumps({"files": self.files}, indent=2) + "\n"
         )
 
 

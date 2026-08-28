@@ -115,7 +115,8 @@ class Journal:
 
     def save(self) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        self.path.write_text(
+        atomic_write_text(
+            self.path,
             json.dumps(
                 {
                     "generation": self.generation,
@@ -127,7 +128,6 @@ class Journal:
                 indent=2,
             )
             + "\n",
-            encoding="utf-8",
         )
 
 

@@ -1,21 +1,51 @@
 {
-  "status": "SESSION_8_IN_PROGRESS",
+  "status": "SESSION_9_READY",
   "project": "omni-theme-cachy",
   "repository": "Tariq-Anjum/omni-theme-cachy",
   "branch": "main",
-  "current_baseline": "Session 7 completed",
+  "current_baseline": "Session 8 completed",
   "control_plane_authority": "raw/ manifests and session records are authoritative for execution state; README is descriptive documentation and must not override the control plane",
   "stop_rule": "Read each control-plane file exactly once. If any file's output appears truncated, empty, or incomplete, do NOT re-read it; proceed with what you have, or report BLOCKED naming the exact problem. Never read the same control-plane file twice in one session.",
   "failure_rule": "If a required fact is unspecified or sources conflict, output Status: BLOCKED with the exact unresolved fact and stop. Do not invent a workaround.",
-  "next_sessions": [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18],
+  "next_sessions": [
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18
+  ],
   "primary_platform": "CachyOS with KDE Plasma 6",
-  "source_directories": ["core", "adapters", "tests"],
-  "project_directories": ["core", "adapters", "tests", "templates", "themes", "scripts", "hooks", "docs"],
+  "source_directories": [
+    "core",
+    "adapters",
+    "tests"
+  ],
+  "project_directories": [
+    "core",
+    "adapters",
+    "tests",
+    "templates",
+    "themes",
+    "scripts",
+    "hooks",
+    "docs"
+  ],
   "documentation_directory": "docs",
   "preferred_test_command": "pytest -q",
   "required_quality_check": "git diff --check",
   "runtime_scope": "user-local configuration and data only",
-  "protected_paths": ["/etc", "/usr", "/bin", "/boot", "/var/lib"],
+  "protected_paths": [
+    "/etc",
+    "/usr",
+    "/bin",
+    "/boot",
+    "/var/lib"
+  ],
   "commands": {
     "canonical_executable": "omni",
     "alias_executable": "omni-theme",
@@ -71,7 +101,7 @@
     "no_repair": "The engine must not chown, chmod, or otherwise repair unsafe ownership or permission states. It rejects and reports."
   },
   "session_8": {
-    "status": "IN_PROGRESS",
+    "status": "COMPLETED",
     "core_files": [
       "core/filesystem.py",
       "core/validation.py",
@@ -86,7 +116,8 @@
       "core/filesystem.py does not already define the XDG-derived approved roots",
       "any approved root is as broad as $HOME or /",
       "the ownership_policy in this manifest is missing or contradicted by another control-plane record"
-    ]
+    ],
+    "outcome": "Central validator added: filesystem.approved_roots() (XDG-derived allowlist: $XDG_CONFIG_HOME/$XDG_DATA_HOME/$XDG_STATE_HOME), filesystem.validate_write_target() (canonicalize+resolve, containment, sibling-prefix/traversal/symlink-escape rejection, ownership policy per manifest; no repair) enforced inside filesystem.atomic_write; non-atomic managed write sites (adapter journals, backup snapshot/restore, wallpaper cache copy) route through the same validator. PathPolicyError added to core/errors.py. CLI tests now sandbox HOME/XDG (autouse fixture) so no test touches the real home. Subprocess audit clean: argument arrays only, no shell=True. Tests: tests/security/ (path policy, ownership, write coverage, failure/rollback/idempotency)."
   },
   "integration": {
     "opencode_files": [],
@@ -94,31 +125,212 @@
     "commands_json": null
   },
   "source_evidence": {
-    "repository_layout": { "source": "repository tree", "status": "VERIFIED" },
-    "control_plane_authority": { "source": "raw/ execution control files", "status": "VERIFIED" },
-    "current_baseline": { "value": "Session 7 completed", "source": "current control-plane manifest", "status": "VERIFIED" },
-    "cli_entry_point": { "value": "core.cli:main", "source": "pyproject.toml", "status": "VERIFIED" },
-    "canonical_executable": { "value": "omni", "source": "pyproject.toml", "status": "VERIFIED" },
-    "alias_executable": { "value": "omni-theme", "source": "pyproject.toml", "status": "VERIFIED" },
-    "test_command": { "value": "pytest -q", "source": "project convention", "status": "VERIFIED" },
-    "build_command": { "value": null, "source": "pyproject.toml", "status": "UNRESOLVED", "needed_by": 15 },
-    "installer": { "value": null, "source": "repository tree", "status": "UNRESOLVED", "needed_by": 15 },
-    "known_theme_fixture": { "value": "themes/default", "source": "themes/default/theme.toml and themes/default/colors.toml", "status": "VERIFIED_EXISTS", "acceptance_suitability": "VERIFY_PER_SESSION" },
-    "ownership_policy": { "value": "defined inline in this manifest", "source": "user decision recorded in control-plane manifest", "status": "RESOLVED" },
-    "opencode_integration": { "value": null, "source": "repository tree", "status": "UNRESOLVED", "needed_by": 17 }
+    "repository_layout": {
+      "source": "repository tree",
+      "status": "VERIFIED"
+    },
+    "control_plane_authority": {
+      "source": "raw/ execution control files",
+      "status": "VERIFIED"
+    },
+    "current_baseline": {
+      "value": "Session 7 completed",
+      "source": "current control-plane manifest",
+      "status": "VERIFIED"
+    },
+    "cli_entry_point": {
+      "value": "core.cli:main",
+      "source": "pyproject.toml",
+      "status": "VERIFIED"
+    },
+    "canonical_executable": {
+      "value": "omni",
+      "source": "pyproject.toml",
+      "status": "VERIFIED"
+    },
+    "alias_executable": {
+      "value": "omni-theme",
+      "source": "pyproject.toml",
+      "status": "VERIFIED"
+    },
+    "test_command": {
+      "value": "pytest -q",
+      "source": "project convention",
+      "status": "VERIFIED"
+    },
+    "build_command": {
+      "value": null,
+      "source": "pyproject.toml",
+      "status": "UNRESOLVED",
+      "needed_by": 15
+    },
+    "installer": {
+      "value": null,
+      "source": "repository tree",
+      "status": "UNRESOLVED",
+      "needed_by": 15
+    },
+    "known_theme_fixture": {
+      "value": "themes/default",
+      "source": "themes/default/theme.toml and themes/default/colors.toml",
+      "status": "VERIFIED_EXISTS",
+      "acceptance_suitability": "VERIFY_PER_SESSION"
+    },
+    "ownership_policy": {
+      "value": "defined inline in this manifest",
+      "source": "user decision recorded in control-plane manifest",
+      "status": "RESOLVED"
+    },
+    "opencode_integration": {
+      "value": null,
+      "source": "repository tree",
+      "status": "UNRESOLVED",
+      "needed_by": 17
+    }
   },
   "session_dependencies": {
-    "8": { "hard": [7], "information": ["filesystem", "validation", "state"], "verification": [7] },
-    "9": { "hard": [8], "information": ["pyproject", "README"], "verification": [8] },
-    "10": { "hard": [9], "information": ["adapter_contract", "targets"], "verification": [8, 9] },
-    "11": { "hard": [10], "information": ["kde_adapter", "gtk_adapter"], "verification": [8, 10] },
-    "12": { "hard": [11], "information": ["filesystem", "validation"], "verification": [8, 11] },
-    "13": { "hard": [12], "information": ["kde_config"], "verification": [8, 12] },
-    "14": { "hard": [13], "information": ["cli"], "verification": [7, 13] },
-    "15": { "hard": [14], "information": ["pyproject"], "verification": [14] },
-    "16": { "hard": [15], "information": ["optional_kwin_scope"], "verification": [15] },
-    "17": { "hard": [16], "information": ["opencode_manifest"], "verification": [14, 16] },
-    "18": { "hard": [17], "information": ["all_previous_sessions"], "verification": [8, 9, 10, 11, 12, 13, 14, 15, 16, 17] }
+    "8": {
+      "hard": [
+        7
+      ],
+      "information": [
+        "filesystem",
+        "validation",
+        "state"
+      ],
+      "verification": [
+        7
+      ]
+    },
+    "9": {
+      "hard": [
+        8
+      ],
+      "information": [
+        "pyproject",
+        "README"
+      ],
+      "verification": [
+        8
+      ]
+    },
+    "10": {
+      "hard": [
+        9
+      ],
+      "information": [
+        "adapter_contract",
+        "targets"
+      ],
+      "verification": [
+        8,
+        9
+      ]
+    },
+    "11": {
+      "hard": [
+        10
+      ],
+      "information": [
+        "kde_adapter",
+        "gtk_adapter"
+      ],
+      "verification": [
+        8,
+        10
+      ]
+    },
+    "12": {
+      "hard": [
+        11
+      ],
+      "information": [
+        "filesystem",
+        "validation"
+      ],
+      "verification": [
+        8,
+        11
+      ]
+    },
+    "13": {
+      "hard": [
+        12
+      ],
+      "information": [
+        "kde_config"
+      ],
+      "verification": [
+        8,
+        12
+      ]
+    },
+    "14": {
+      "hard": [
+        13
+      ],
+      "information": [
+        "cli"
+      ],
+      "verification": [
+        7,
+        13
+      ]
+    },
+    "15": {
+      "hard": [
+        14
+      ],
+      "information": [
+        "pyproject"
+      ],
+      "verification": [
+        14
+      ]
+    },
+    "16": {
+      "hard": [
+        15
+      ],
+      "information": [
+        "optional_kwin_scope"
+      ],
+      "verification": [
+        15
+      ]
+    },
+    "17": {
+      "hard": [
+        16
+      ],
+      "information": [
+        "opencode_manifest"
+      ],
+      "verification": [
+        14,
+        16
+      ]
+    },
+    "18": {
+      "hard": [
+        17
+      ],
+      "information": [
+        "all_previous_sessions"
+      ],
+      "verification": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17
+      ]
+    }
   },
   "completion_rule": "Do not start a later session while the selected session is blocked.",
   "global_execution_invariant": "Unknown required fact means BLOCKED; agents must not invent commands, paths, schemas, symbols, dependencies, platform scope, parser choices, or ownership policy.",

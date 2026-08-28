@@ -96,7 +96,7 @@ class Journal:
             "profile_key_existed": self.profile_key_existed,
             "profile_snapshot": self.profile_snapshot,
         }
-        self.path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+        atomic_write_text(self.path, json.dumps(payload, indent=2) + "\n")
 
 
 @dataclass(frozen=True)

@@ -20,7 +20,7 @@ import shutil
 from pathlib import Path
 
 from core.errors import AdapterError
-from core.filesystem import sha256_file
+from core.filesystem import sha256_file, validate_write_target
 
 __all__ = ["snapshot_file", "restore_snapshot"]
 
@@ -46,6 +46,7 @@ def snapshot_file(target: str | Path, backup_dir: str | Path) -> dict:
     backups.mkdir(parents=True, exist_ok=True)
     backup = backups / f"{target_path.name}.{digest[:12]}.bak"
     if not backup.is_file():  # keep the first snapshot; never overwrite it
+        validate_write_target(backup)
         shutil.copyfile(target_path, backup)
     record["backup_path"] = str(backup)
     return record
@@ -69,6 +70,7 @@ def restore_snapshot(target: str | Path, record: dict) -> tuple[bool, list[str]]
                 f"rollback backup for {target_path} is missing ({backup!r}); "
                 "file left as-is"
             ]
+        validate_write_target(target_path)
         shutil.copyfile(backup, target_path)
     except OSError as exc:
         return False, [f"cannot restore {target_path}: {exc}"]
