@@ -12,7 +12,10 @@ Everything here is deliberately boring and side-effect-explicit:
   fsync'ed, chmod'ed, then moved into place with :func:`os.replace`
   (atomic within a filesystem). An existing file's permission bits are
   preserved across replacement so user tweaks like ``chmod 600`` survive
-  re-theming.
+  re-theming. The write policy is re-validated immediately before the
+  replace, so a path component that turns into a symlink between
+  validation and replacement is rejected rather than followed.
+  :func:`atomic_copy` gives file copies the same guarantees.
 
 * **Directory promotion** implements the two-step rename dance used by
   activation (session 04): the live directory moves aside into a
@@ -56,6 +59,7 @@ __all__ = [
     "clean_directory",
     "atomic_write",
     "atomic_write_text",
+    "atomic_copy",
     "backup_slot_name",
     "promote_directory",
 ]
@@ -298,23 +302,24 @@ def clean_directory(path: str | Path) -> Path:
 # ---------------------------------------------------------------------------
 
 
-def atomic_write(
-    path: str | Path,
-    data: bytes,
+def _atomic_install(
+    target: Path,
+    write_payload,
     *,
     mode: int | None = None,
 ) -> Path:
-    """Replace the file at *path* with *data* atomically.
+    """Shared tail of every atomic write: temp sibling → replace.
 
-    Steps: create parent directories safely; write a sibling temp file;
-    flush; fsync; apply permissions (explicit *mode*, else preserve the
-    existing file's mode, else ``0o644``); :func:`os.replace` over the
-    destination. On failure the temp file is removed and the destination
-    keeps its previous bytes. The target must pass
-    :func:`validate_write_target` (containment + ownership policy) or a
-    :class:`core.errors.PathPolicyError` is raised and nothing changes.
+    ``write_payload`` receives the open temp file handle and must write
+    the full payload. Steps: create parent directories safely; write a
+    sibling temp file; flush; fsync; apply permissions (explicit *mode*,
+    else preserve the existing file's mode, else ``0o644``); re-run
+    :func:`validate_write_target` on the target (closes the
+    validation→replacement race window: a component that turned into a
+    symlink meanwhile is rejected, never followed); then
+    :func:`os.replace` over the destination. On failure the temp file is
+    removed and the destination keeps its previous bytes.
     """
-    target = validate_write_target(path)
     parent = ensure_dir(target.parent)
 
     try:
@@ -331,10 +336,11 @@ def atomic_write(
     tmp_path = Path(tmp_name)
     try:
         with os.fdopen(fd, "wb") as fh:
-            fh.write(data)
+            write_payload(fh)
             fh.flush()
             os.fsync(fh.fileno())
         os.chmod(tmp_path, effective_mode)
+        validate_write_target(target)
         os.replace(tmp_path, target)
     except BaseException:
         tmp_path.unlink(missing_ok=True)
@@ -342,9 +348,48 @@ def atomic_write(
     return target
 
 
+def atomic_write(
+    path: str | Path,
+    data: bytes,
+    *,
+    mode: int | None = None,
+) -> Path:
+    """Replace the file at *path* with *data* atomically.
+
+    The target must pass :func:`validate_write_target` (containment +
+    ownership policy, re-checked just before the replacement) or a
+    :class:`core.errors.PathPolicyError` is raised and nothing changes.
+    """
+    target = validate_write_target(path)
+    return _atomic_install(target, lambda fh: fh.write(data), mode=mode)
+
+
 def atomic_write_text(path: str | Path, text: str, *, mode: int | None = None) -> Path:
     """:func:`atomic_write` for UTF-8 text."""
     return atomic_write(path, text.encode("utf-8"), mode=mode)
+
+
+def atomic_copy(
+    source: str | Path,
+    destination: str | Path,
+    *,
+    mode: int | None = None,
+) -> Path:
+    """Install a copy of *source* at *destination* atomically.
+
+    The same write policy as :func:`atomic_write` applies to
+    *destination*: it is validated first, streamed into a sibling temp
+    file (flush, fsync, mode), the policy is re-checked, and the copy is
+    :func:`os.replace`d into place — so a failed or rejected copy never
+    damages an existing destination. An unreadable *source* raises
+    ``OSError`` before anything is touched.
+    """
+    source_path = Path(source)
+    target = validate_write_target(destination)
+    with open(source_path, "rb") as src_fh:
+        return _atomic_install(
+            target, lambda fh: shutil.copyfileobj(src_fh, fh), mode=mode
+        )
 
 
 # ---------------------------------------------------------------------------

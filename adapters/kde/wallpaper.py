@@ -27,13 +27,12 @@ from __future__ import annotations
 
 import json
 import re
-import shutil
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
 
 from core.errors import AdapterError
-from core.filesystem import atomic_write_text, sha256_file, validate_write_target
+from core.filesystem import atomic_copy, atomic_write_text, sha256_file
 
 from adapters.kde.config import run_command
 from adapters.kde.detection import TOOL_PLASMA_APPLY_WALLPAPERIMAGE, TOOL_QDBUS6
@@ -125,7 +124,10 @@ def ensure_cached(source: str | Path, target: str | Path) -> Path:
     """Copy *source* onto the exact *target* cache path (idempotent).
 
     Skips the copy when the cached bytes already match the source;
-    repairs a corrupted/drifted cache entry otherwise.
+    repairs a corrupted/drifted cache entry otherwise. The repair goes
+    through :func:`core.filesystem.atomic_copy` (write policy + atomic
+    replacement), so a rejected or failed copy can never truncate the
+    existing cache entry.
     """
     source_path = Path(source)
     target_path = Path(target)
@@ -135,8 +137,7 @@ def ensure_cached(source: str | Path, target: str | Path) -> Path:
         not target_path.exists()
         or sha256_file(target_path) != sha256_file(source_path)
     ):
-        validate_write_target(target_path)
-        shutil.copyfile(source_path, target_path)
+        atomic_copy(source_path, target_path)
     return target_path
 
 

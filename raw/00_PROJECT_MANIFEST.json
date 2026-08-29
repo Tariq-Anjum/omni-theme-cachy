@@ -1,14 +1,13 @@
 {
-  "status": "SESSION_12_READY",
+  "status": "SESSION_13_READY",
   "project": "omni-theme-cachy",
   "repository": "Tariq-Anjum/omni-theme-cachy",
   "branch": "main",
-  "current_baseline": "Session 11 completed",
+  "current_baseline": "Session 12 completed",
   "control_plane_authority": "raw/ manifests and session records are authoritative for execution state; README is descriptive documentation and must not override the control plane",
   "stop_rule": "Read each control-plane file exactly once. If any file's output appears truncated, empty, or incomplete, do NOT re-read it; proceed with what you have, or report BLOCKED naming the exact problem. Never read the same control-plane file twice in one session.",
   "failure_rule": "If a required fact is unspecified or sources conflict, output Status: BLOCKED with the exact unresolved fact and stop. Do not invent a workaround.",
   "next_sessions": [
-    12,
     13,
     14,
     15,
@@ -154,6 +153,15 @@
     },
     "outcome": "GTK behavior is now explicitly classified per machine by adapters/gtk/capability.py (GTKCapability: gtk3/gtk4/kde_gtk_sync/breeze/direct_css_supported + documented reason; modes kde-native-sync | direct | unsupported). Default remains detect + verify + report: in kde-sync mode Omni writes nothing into the config home, ever. gtk-4.0-only without KDE sync is now honestly unsupported (libadwaita ignores user CSS). Non-Breeze GTK theme boundary is reported in plan warnings and doctor notes with the live-verified wording (colors propagate via colors.css; theme choice untouched). Direct fallback unchanged: opt-in, marker-owned gtk-3.0/gtk.css block, journal rollback, no read-only bits, conflicts refused. Fixed pre-existing direct-mode verify bug: hash mismatch produced verified=False with EMPTY errors (silent failure) — errors now surface. Doctor gtk entry follows the session-11 JSON shape. docs/user/GTK.md ownership map + live-verified facts added."
   },
+  "session_12": {
+    "status": "COMPLETED",
+    "verification": {
+      "tests": "709 passed, 1 skipped (root-skip by design); git diff --check clean; compileall core+adapters+hooks+scripts clean",
+      "new_tests": "tests/security/test_symlink_escape.py (symlink matrix + simulated-race TOCTOU), tests/security/test_atomic_write.py (permission semantics, temp hygiene, atomic_copy), tests/security/test_write_path_coverage.py (snapshot/restore, wallpaper cache, vscode settings+journal routing; outside-root restore refusal); existing session-8 security tests extended, none weakened",
+      "audit": "scripts/audit_write_paths.py (AST reviewer aid, excludes itself) run clean: all candidate sites accounted for in the reviewed write-site inventory table"
+    },
+    "outcome": "Session 8's central policy verified independently and held: approved_roots/validate_write_target/PathPolicyError/atomic-write enforcement confirmed in code. Gaps found and closed centrally: (1) validate→replace TOCTOU window — atomic_write re-runs validate_write_target immediately before os.replace, so a component that becomes a symlink mid-write is rejected, never followed; (2) non-atomic shutil.copyfile at snapshot_file, restore_snapshot, and wallpaper ensure_cached replaced by new central atomic_copy (validated, atomic, preserves existing mode; failed/rejected copies never truncate the destination). restore_snapshot now reports policy rejections as (False, warning) per its contract instead of raising. Write-site review table (file | operation | target source | expected root | guard | ownership | test) added to docs/architecture/OWNERSHIP_AND_SECURITY.md; scripts/generate_default_wallpaper.py documented as dev-asset tooling; plasma-apply-* documented as native operations with their own contract. Every external write is centrally guarded; every other site is inside controlled engine-private staging/state directories or explicitly documented."
+  },
   "integration": {
     "opencode_files": [],
     "opencode_schema": null,
@@ -169,7 +177,7 @@
       "status": "VERIFIED"
     },
     "current_baseline": {
-      "value": "Session 11 completed",
+      "value": "Session 12 completed",
       "source": "current control-plane manifest",
       "status": "VERIFIED"
     },

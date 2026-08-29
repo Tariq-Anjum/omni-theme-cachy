@@ -12,12 +12,17 @@ user overrides, rollback, and a security model for third-party themes.
 
 ## Status
 
-**Session 11 completed** — GTK integration aligned with KDE's native
-synchronization chain: capability classification (`adapters/gtk/capability.py`),
-`omni doctor --json` GTK mode reporting (kde-native-sync / direct /
-unsupported), non-Breeze boundary reporting, and a propagation-window
-fix for kde-gtk-config's async `colors.css` rewrite (verified live on
-Plasma 6.7) (authoritative execution state: `raw/00_PROJECT_MANIFEST.json`).
+**Session 12 completed** — measured write-path security coverage: the
+central path policy (`approved_roots`, `validate_write_target`,
+`PathPolicyError`) verified independently across every write site,
+symlink-safe atomic writes hardened against validation→replacement races
+(`PathPolicyError` on mid-write symlink swaps, never followed), file
+copies routed through a new atomic, policy-validated `atomic_copy`
+(backup snapshots, restores, wallpaper cache), a full write-site review
+table in `docs/architecture/OWNERSHIP_AND_SECURITY.md`, an AST write-site
+audit script (`scripts/audit_write_paths.py`), and symlink/TOCTOU test
+coverage in `tests/security/`
+(authoritative execution state: `raw/00_PROJECT_MANIFEST.json`).
 Core engine, adapters, CLI, security layer and docs are in place;
 documented commands are verified against the implementation, including
 live KDE Plasma 6 apply→rollback runs.

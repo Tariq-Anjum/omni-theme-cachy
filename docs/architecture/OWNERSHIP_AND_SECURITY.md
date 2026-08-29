@@ -55,6 +55,50 @@ cache copy):
 Violations raise `PathPolicyError` (`core/errors.py`) and surface as a
 controlled CLI failure — no traceback for expected errors.
 
+### Session 12 hardening
+
+* **Re-validation before replacement.** `atomic_write` (and every helper
+  built on it) re-runs `validate_write_target` immediately before
+  `os.replace`, closing the validation→replacement race: a path
+  component that turns into a symlink after the initial check is
+  rejected, never followed (tested by simulated-race tests in
+  `tests/security/test_symlink_escape.py`).
+* **`atomic_copy`.** File copies (backup snapshots, restores, wallpaper
+  cache repair) now go through a central atomic, policy-validated copy
+  primitive instead of raw `shutil.copyfile` — a rejected or failed copy
+  can never truncate the destination.
+
+## Write-site inventory (Session 12)
+
+Every filesystem write site in `core/`, `adapters/`, `hooks/` and
+`scripts/`, and how each satisfies the exit condition: centrally guarded,
+inside controlled engine-private directories, or explicitly documented as
+a dev-asset/native operation. `scripts/audit_write_paths.py` lists the
+candidate sites mechanically (reviewer assistance only — an AST hit
+proves nothing by itself); this table is the reviewed result.
+
+| Site | Operation | Target source | Expected root | Guard | Ownership | Test |
+|---|---|---|---|---|---|---|
+| `core/staging.py` staged artifacts + `manifest.json` | `atomic_write` | registry targets → `<state>/staging` | `$XDG_STATE_HOME` | validator inside `atomic_write` | validator (uid/bits) | `test_write_coverage.py` |
+| `core/activation.py` `_materialize_targets` | `atomic_write` | declared targets → config/data homes | XDG base dirs | validator + conflict gate | validator | `test_write_coverage.py`, `test_failure_rollback.py` |
+| `core/state.py` `write_state` | `atomic_write_text` | engine state root | `$XDG_STATE_HOME` | validator | validator | unit state tests |
+| `core/state.py` `switch_link` / `promote_generation` | `os.symlink` + `os.replace` in state root | generation id (regex-checked, no `..`) | state root | `_checked_gen_id`; refuses non-symlink link names | engine-owned | `test_failure_rollback.py` |
+| `core/activation.py` rollback unlink of engine-created files | `unlink` | only files this attempt created (absent from prior owned map) | XDG base dirs | creation provenance check | engine-owned | `test_failure_rollback.py` |
+| `core/activation.py` dry-run sandbox | `mkdtemp` + `rmtree` | engine state root | state root | engine-created, removed after run | engine-owned | CLI tests |
+| `core/filesystem.py` `atomic_write` / `atomic_copy` | mkstemp sibling → fsync → chmod → re-validate → `os.replace` | caller-provided | XDG base dirs | the policy itself | validator | `test_atomic_write.py`, `test_symlink_escape.py` |
+| `adapters/support.py` `snapshot_file` | `atomic_copy` → `<state>/adapters/<name>-backups/` | live target bytes | state root | validator via `atomic_copy`; first snapshot never overwritten | engine-owned backup | `test_write_path_coverage.py` |
+| `adapters/support.py` `restore_snapshot` | `atomic_copy` backup → live target | journalled backup path | XDG base dirs | validator via `atomic_copy`; violation → warning, file untouched | engine-owned restore | `test_write_path_coverage.py` (incl. outside-root refusal) |
+| `adapters/kde/wallpaper.py` `ensure_cached` | `atomic_copy` → `<state>/adapters/wallpaper-cache/` | theme wallpaper (format-sniffed first) | state root | validator via `atomic_copy` | engine-owned cache | `test_write_path_coverage.py` |
+| adapter journals (`kde.json`, `vscode.json`, `konsole.json`, `gtk.json`) | `atomic_write_text` | engine state root | `$XDG_STATE_HOME` | validator | engine-owned | `test_write_path_coverage.py` |
+| `adapters/vscode` apply/rollback | `atomic_write_text` | discovered `<config>/Code*/User/settings.json` | `$XDG_CONFIG_HOME` | validator | key-scoped: only managed keys; rest byte-preserved | `test_write_path_coverage.py` + vscode unit tests |
+| `adapters/konsole` apply/rollback | `atomic_write_text` | scheme + default profile under `$XDG_DATA_HOME/konsole` | `$XDG_DATA_HOME` | validator + `assert_within` traversal guard | value-scoped profile key; scheme fully owned | konsole unit tests |
+| `adapters/gtk/direct.py` apply | `atomic_write_text` | `~/.config/gtk-{3,4}.0/gtk.css` | `$XDG_CONFIG_HOME` | validator + marker-owned block; opt-in only | marker-scoped block | gtk unit tests |
+| KDE `OmniTheme.colors` | `atomic_write` (core-managed target) | declared in `templates/targets.toml` | `$XDG_DATA_HOME/color-schemes` | validator + managed-target conflict gate | Omni-owned generated artifact | KDE adapter tests |
+| `scripts/generate_default_wallpaper.py` | `open("wb")` into `themes/default/wallpapers/` | repo asset tree | repository checkout (dev tooling, never runtime, never user config) | documented dev-asset exception | repo asset | `audit_write_paths.py` lists it for review |
+| native desktop operations | `plasma-apply-*`, `kreadconfig6` via argument-array subprocess | desktop state | KDE's own contract | out of the engine's filesystem scope; Omni writes no files here | KDE/user | subprocess-hygiene tests |
+
+`hooks/` contains no Python write sites (bash reload scripts only).
+
 ## Theme data is data, not code
 
 * **Templates are inert.** Rendering is pure substitution over a closed

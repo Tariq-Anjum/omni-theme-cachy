@@ -16,11 +16,10 @@ same story — audited once, tested once.
 
 from __future__ import annotations
 
-import shutil
 from pathlib import Path
 
-from core.errors import AdapterError
-from core.filesystem import sha256_file, validate_write_target
+from core.errors import AdapterError, ThemeError
+from core.filesystem import atomic_copy, sha256_file
 
 __all__ = ["snapshot_file", "restore_snapshot"]
 
@@ -29,7 +28,9 @@ def snapshot_file(target: str | Path, backup_dir: str | Path) -> dict:
     """Capture *target*'s current state for later :func:`restore_snapshot`.
 
     Returns the journal record. When the file does not exist the record
-    simply says so (rollback will delete). Never modifies the target.
+    simply says so (rollback will delete). Never modifies the target;
+    the backup itself is installed atomically through the central write
+    policy (:func:`core.filesystem.atomic_copy`).
     """
     target_path = Path(target)
     record: dict = {
@@ -46,8 +47,7 @@ def snapshot_file(target: str | Path, backup_dir: str | Path) -> dict:
     backups.mkdir(parents=True, exist_ok=True)
     backup = backups / f"{target_path.name}.{digest[:12]}.bak"
     if not backup.is_file():  # keep the first snapshot; never overwrite it
-        validate_write_target(backup)
-        shutil.copyfile(target_path, backup)
+        atomic_copy(target_path, backup)
     record["backup_path"] = str(backup)
     return record
 
@@ -56,7 +56,9 @@ def restore_snapshot(target: str | Path, record: dict) -> tuple[bool, list[str]]
     """Undo a journalled write: restore original bytes or remove the file.
 
     Returns ``(rolled_back, warnings)``. A missing record yields
-    success-with-warning: there is nothing of ours to undo.
+    success-with-warning: there is nothing of ours to undo. The restore
+    is an atomic policy-validated write (:func:`core.filesystem.atomic_copy`),
+    so a rejected or failed restore leaves the current file untouched.
     """
     target_path = Path(target)
     warnings: list[str] = []
@@ -70,9 +72,8 @@ def restore_snapshot(target: str | Path, record: dict) -> tuple[bool, list[str]]
                 f"rollback backup for {target_path} is missing ({backup!r}); "
                 "file left as-is"
             ]
-        validate_write_target(target_path)
-        shutil.copyfile(backup, target_path)
-    except OSError as exc:
+        atomic_copy(backup, target_path)
+    except (OSError, ThemeError) as exc:
         return False, [f"cannot restore {target_path}: {exc}"]
     return True, warnings
 

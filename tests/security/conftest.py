@@ -60,6 +60,23 @@ def sandbox(tmp_path):
 
 
 @pytest.fixture
+def allow(tmp_path):
+    """Narrow the policy to a single approved root: ``tmp_path/allowed``.
+
+    Everything else under *tmp_path* (including the sandbox home) is then
+    *outside* the approved roots, so escape tests have somewhere real to
+    escape to.
+    """
+    from core import filesystem
+
+    root = tmp_path / "allowed"
+    root.mkdir()
+    filesystem.set_approved_roots([root])
+    yield root
+    filesystem.set_approved_roots(None)
+
+
+@pytest.fixture
 def fake_adapter_factory():
     """Factory for contract-conforming adapter stubs with failure modes."""
 

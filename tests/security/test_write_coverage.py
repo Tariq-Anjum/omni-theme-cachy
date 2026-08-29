@@ -2,8 +2,9 @@
 
 ``filesystem.atomic_write`` is the engine's only write primitive and calls
 ``validate_write_target`` internally; adapters and backup/restore helpers
-route through the same validator. These tests assert the routing actually
-happens on a full activation by recording every validated path.
+route through the same validator (session 12: also via ``atomic_copy`` for
+snapshot/restore and the wallpaper cache). These tests assert the routing
+actually happens on a full activation by recording every validated path.
 """
 
 from __future__ import annotations
@@ -14,22 +15,24 @@ import pytest
 
 from core import filesystem
 from core.activation import activate
-from adapters import support as adapter_support
 
 
 @pytest.fixture
 def validator_recorder(monkeypatch):
-    """Record every path passing through the central validator."""
+    """Record every path passing through the central validator.
+
+    Snapshot/restore and wallpaper-cache copies funnel through
+    ``filesystem.atomic_copy`` → ``validate_write_target``, so one hook
+    observes every managed write path.
+    """
     calls: list[Path] = []
     real_fs = filesystem.validate_write_target
-    real_support = adapter_support.validate_write_target
 
     def recorder(path, **kwargs):
         calls.append(Path(path))
         return real_fs(path, **kwargs)
 
     monkeypatch.setattr(filesystem, "validate_write_target", recorder)
-    monkeypatch.setattr(adapter_support, "validate_write_target", recorder)
     return calls
 
 
