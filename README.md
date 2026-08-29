@@ -1,6 +1,6 @@
 # omni-theme-cachy
 
-A universal theming engine for **CachyOS running KDE Plasma 6**, inspired by
+A whole-desktop theming engine for **CachyOS running KDE Plasma 6**, inspired by
 the Omarchy theming system but built for a traditional floating-window,
 mouse-driven Plasma desktop.
 
