@@ -1,14 +1,13 @@
 {
-  "status": "SESSION_14_READY",
+  "status": "SESSION_15_READY",
   "project": "omni-theme-cachy",
   "repository": "Tariq-Anjum/omni-theme-cachy",
   "branch": "main",
-  "current_baseline": "Session 13 completed",
+  "current_baseline": "Session 14 completed",
   "control_plane_authority": "raw/ manifests and session records are authoritative for execution state; README is descriptive documentation and must not override the control plane",
   "stop_rule": "Read each control-plane file exactly once. If any file's output appears truncated, empty, or incomplete, do NOT re-read it; proceed with what you have, or report BLOCKED naming the exact problem. Never read the same control-plane file twice in one session.",
   "failure_rule": "If a required fact is unspecified or sources conflict, output Status: BLOCKED with the exact unresolved fact and stop. Do not invent a workaround.",
   "next_sessions": [
-    14,
     15,
     16,
     17,
@@ -170,10 +169,19 @@
     },
     "outcome": "core/kde_config.py added as the single home for KDE/KConfig INI operations: parse_ini (verbatim keys, KConfig last-wins, suffixed variants distinct), set_ini_key (byte-precise; never creates a duplicate section; rewrites the winning occurrence in place preserving any [$e]-style suffix; appends into the last existing section block; new group only when the section is missing), remove_ini_key (every variant of the managed key, header preserved). configparser deliberately not used anywhere (lowercases keys, rejects duplicate sections, re-serialises whole files). Konsole profile surgery in adapters/konsole/adapter.py now delegates to it (regex surgery removed); adapters/konsole/detection.py parse_ini and adapters/gtk/sync.py parse_kdeglobals delegate to the central parser. No KWin code exists, so no set_kwin_setting was created; kwinrc/plasmarc stay out of scope, pinned by guard tests. kwriteconfig6 is installed on the dev machine but is NOT used for the profile: KConfig re-serialisation cannot guarantee the documented byte-preservation contract of the profile edit (snapshot+key journal provides exact rollback); mechanism choice per Step 2 order = dedicated format-aware editor. All resulting writes still route through filesystem.atomic_write_text (validated atomic path). Docs: session 13 classification added to docs/architecture/OWNERSHIP_AND_SECURITY.md."
   },
+  "session_14": {
+    "status": "COMPLETED",
+    "verification": {
+      "tests": "756 passed, 1 skipped (root-skip by design); git diff --check clean; compileall core+adapters+hooks+scripts clean",
+      "new_tests": "tests/unit/test_cli_agent_ergonomics.py (11 tests: commands --json valid + self-describing, pinned inventory shape, mutating->yes / read-only->no-yes asserted via metadata AND raw parser, apply --yes never prompts (builtins.input monkeypatched to raise), rollback --yes deterministic ROLLBACK_FAILURE, apply --dry-run --json parseable, stdout-only JSON with empty stderr on success, schema_version==1 on every JSON surface including failure documents, wallpaper JSON versioning tolerant of headless); tests/unit/test_cli_json.py::test_theme_list_json_output updated to the versioned wrapped shape required by the schema-version rule",
+      "cli_surface": "omni commands --json, omni theme apply default --dry-run --yes --json, omni doctor --json, omni status --json, omni theme list --json all piped through jq clean; human 'omni commands' table verified"
+    },
+    "outcome": "Step 1 audit confirmed all three mutating commands (theme.apply, theme.rollback, wallpaper.set) already exposed --yes with TTY-confirm/refuse semantics; no duplicate flags added and --yes was not added to read-only commands. omni commands added (read-only): human table plus --json inventory {schema_version, command:'commands', commands:[{name, mutates, supports_yes, supports_json, supports_dry_run}]} derived from the live argparse parser (core.cli._iter_leaf_parsers/_commands_metadata) so flag metadata cannot drift from the real surface; the only hand-maintained part is MUTATING_COMMANDS = {theme.apply, theme.rollback, wallpaper.set}. JSON failure documents ({schema_version, command, ok:false, errors, warnings}) added to the ThemeError paths of theme.apply, theme.rollback and wallpaper.set (previously stdout was empty and only stderr carried the message); exit codes unchanged. schema_version+command added to theme.list (was a bare JSON array), theme.current, wallpaper.list, wallpaper.current, wallpaper.set. Docs: docs/user/CLI.md command tree updated and 'Agent ergonomics: omni commands' section added with the stable contract Session 17 consumes. Real-apply form not run against the real desktop this session (CLI tests sandbox HOME/XDG via the conftest autouse fixture)."
+  },
   "integration": {
     "opencode_files": [],
     "opencode_schema": null,
-    "commands_json": null
+    "commands_json": "omni commands --json (schema_version 1; entries {name, mutates, supports_yes, supports_json, supports_dry_run} derived from the live parser in core/cli.py; documented in docs/user/CLI.md)" 
   },
   "source_evidence": {
     "repository_layout": {

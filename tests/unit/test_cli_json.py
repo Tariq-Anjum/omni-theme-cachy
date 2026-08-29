@@ -11,15 +11,16 @@ from core.cli import ExitCode, main
 
 
 def test_theme_list_json_output(tmp_path, capsys, make_theme):
-    """`omni theme list --json` emits parseable JSON."""
+    """`omni theme list --json` emits a versioned, parseable document."""
     make_theme("foo", theme_toml='[theme]\nname="Foo"\nid="foo"\nversion=1\nmode="dark"\n')
     make_theme("bar", theme_toml='[theme]\nname="Bar"\nid="bar"\nversion=1\nmode="dark"\n')
     code = main(["theme", "list", "--root", str(tmp_path), "--json"])
     assert code == ExitCode.SUCCESS
     out = capsys.readouterr().out
     data = json.loads(out)
-    assert isinstance(data, list)
-    assert {t["id"] for t in data} == {"foo", "bar"}
+    assert data["schema_version"] == 1
+    assert data["command"] == "theme.list"
+    assert {t["id"] for t in data["themes"]} == {"foo", "bar"}
 
 
 def test_doctor_json_output(capsys):

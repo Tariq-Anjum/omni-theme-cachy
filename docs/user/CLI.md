@@ -22,7 +22,8 @@ omni
 │   └── set <path> [--yes]                  # write
 ├── status                                  # read
 ├── doctor                                  # read
-└── version                                 # read
+├── version                                 # read
+└── commands [--json]                       # read: agent-facing inventory
 ```
 
 Global-ish flags available on most subcommands: `--root DIR` (themes
@@ -32,7 +33,7 @@ directory; default `themes/` relative to the working directory),
 ## Safety convention
 
 * **Read-only** commands: `theme list|current|validate|preview`,
-  `status`, `doctor`, `version`, `wallpaper list|current`.
+  `status`, `doctor`, `version`, `wallpaper list|current`, `commands`.
 * **Write** commands: `theme apply`, `theme rollback`, `wallpaper set`.
   Each requires confirmation on a TTY, or `--yes` when non-interactive
   (pipes, scripts, agents). Without `--yes` on a non-TTY stdin they
@@ -55,6 +56,53 @@ omni theme preview default --json | jq .
 omni doctor --json | jq .
 omni status --json | jq .
 ```
+
+## Agent ergonomics: `omni commands`
+
+`omni commands` is the discovery surface for coding agents and
+automation. It reports every leaf command with machine-readable safety
+metadata derived from the live parser, so an agent can decide what is
+safe to run without parsing `--help` prose:
+
+```bash
+omni commands --json | jq .
+```
+
+```json
+{
+  "schema_version": 1,
+  "command": "commands",
+  "commands": [
+    {
+      "name": "theme.apply",
+      "mutates": true,
+      "supports_yes": true,
+      "supports_json": true,
+      "supports_dry_run": true
+    },
+    {
+      "name": "theme.preview",
+      "mutates": false,
+      "supports_yes": false,
+      "supports_json": true,
+      "supports_dry_run": false
+    }
+  ]
+}
+```
+
+Contract (stable; consumed by the Session 17 OpenCode integration):
+
+* `name` — `group.command`, or the bare group name for top-level
+  commands (`status`, `doctor`, `version`, `commands`).
+* `mutates` — the command writes to the system. Only `theme.apply`,
+  `theme.rollback` and `wallpaper.set` are `true`.
+* `supports_yes` / `supports_json` / `supports_dry_run` — derived from
+  the actual argument parser, never hand-maintained.
+* Every mutating command accepts `--yes` (skip confirmation for
+  automation); read-only commands never do.
+* Every JSON document, on success or failure, carries
+  `schema_version: 1` and a `command` field naming the surface.
 
 ## Exit codes
 

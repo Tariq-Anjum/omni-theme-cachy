@@ -6,6 +6,7 @@ Usage::
 
     omni doctor                      # diagnose environment
     omni version                     # print version
+    omni commands --json             # command inventory for agents
     omni status --json                # show runtime state
     omni theme list                   # list available themes
     omni theme current                # print active theme
@@ -340,6 +341,17 @@ def _cmd_theme_preview(args: argparse.Namespace) -> int:
     return code
 
 
+def _json_failure(command: str, message: str) -> dict:
+    """A versioned failure document for commands that error before planning."""
+    return {
+        "schema_version": 1,
+        "command": command,
+        "ok": False,
+        "errors": [message],
+        "warnings": [],
+    }
+
+
 def _cmd_theme_apply(args: argparse.Namespace) -> int:
     if not args.dry_run and not _confirm(args, f"apply theme {args.reference!r}?"):
         return ExitCode.USAGE
@@ -351,6 +363,9 @@ def _cmd_theme_apply(args: argparse.Namespace) -> int:
             dry_run=args.dry_run,
         )
     except ThemeError as exc:
+        if args.json:
+            print(json.dumps(_json_failure("theme.apply", str(exc)), indent=2))
+            return ExitCode.INTERNAL_ERROR
         print(f"error: {exc}", file=sys.stderr)
         return ExitCode.INTERNAL_ERROR
     return _print_outcome(outcome, args.json)
@@ -360,7 +375,16 @@ def _cmd_theme_current(args: argparse.Namespace) -> int:
     engine = _build_engine(args)
     current = engine.current_theme()
     if args.json:
-        print(json.dumps({"current_theme": current}, indent=2))
+        print(
+            json.dumps(
+                {
+                    "schema_version": 1,
+                    "command": "theme.current",
+                    "current_theme": current,
+                },
+                indent=2,
+            )
+        )
     else:
         print(current or "<no theme active>")
     return ExitCode.SUCCESS if current else ExitCode.ACTIVATION_FAILURE
@@ -373,6 +397,9 @@ def _cmd_theme_rollback(args: argparse.Namespace) -> int:
     try:
         outcome = engine.rollback()
     except ThemeError as exc:
+        if args.json:
+            print(json.dumps(_json_failure("theme.rollback", str(exc)), indent=2))
+            return ExitCode.ROLLBACK_FAILURE
         print(f"error: {exc}", file=sys.stderr)
         return ExitCode.ROLLBACK_FAILURE
     return _print_outcome(outcome, args.json)
@@ -587,7 +614,16 @@ def _cmd_theme_list(args: argparse.Namespace) -> int:
                     themes.append({"name": item.name, "id": item.name})
 
     if getattr(args, "json", False):
-        print(json.dumps(themes, indent=2))
+        print(
+            json.dumps(
+                {
+                    "schema_version": 1,
+                    "command": "theme.list",
+                    "themes": themes,
+                },
+                indent=2,
+            )
+        )
         return ExitCode.SUCCESS
 
     if not themes:
@@ -696,7 +732,17 @@ def _cmd_wallpaper_list(args: argparse.Namespace) -> int:
     for row in rows:
         row["active"] = _is_active(row["path"])
     if args.json:
-        print(json.dumps({"active": active, "wallpapers": rows}, indent=2))
+        print(
+            json.dumps(
+                {
+                    "schema_version": 1,
+                    "command": "wallpaper.list",
+                    "active": active,
+                    "wallpapers": rows,
+                },
+                indent=2,
+            )
+        )
     else:
         for url in active:
             print(f"active: {url}")
@@ -713,7 +759,16 @@ def _cmd_wallpaper_current(args: argparse.Namespace) -> int:
     backend, _env = _wallpaper_backend()
     images = backend.current_images()
     if args.json:
-        print(json.dumps({"images": images}, indent=2))
+        print(
+            json.dumps(
+                {
+                    "schema_version": 1,
+                    "command": "wallpaper.current",
+                    "images": images,
+                },
+                indent=2,
+            )
+        )
     else:
         for url in images:
             print(url)
@@ -733,6 +788,9 @@ def _cmd_wallpaper_set(args: argparse.Namespace) -> int:
     try:
         sniff_image_format(source)
     except ThemeError as exc:
+        if args.json:
+            print(json.dumps(_json_failure("wallpaper.set", str(exc)), indent=2))
+            return ExitCode.INTERNAL_ERROR
         print(f"error: {exc}", file=sys.stderr)
         return ExitCode.INTERNAL_ERROR
 
@@ -757,6 +815,9 @@ def _cmd_wallpaper_set(args: argparse.Namespace) -> int:
         journal.remember_apply("__direct__", str(cached))
         journal.save()
     except (ThemeError, OSError) as exc:
+        if args.json:
+            print(json.dumps(_json_failure("wallpaper.set", str(exc)), indent=2))
+            return ExitCode.INTERNAL_ERROR
         print(f"error: {exc}", file=sys.stderr)
         return ExitCode.INTERNAL_ERROR
 
@@ -766,6 +827,8 @@ def _cmd_wallpaper_set(args: argparse.Namespace) -> int:
         print(
             json.dumps(
                 {
+                    "schema_version": 1,
+                    "command": "wallpaper.set",
                     "source": str(source),
                     "cached": str(cached),
                     "applied": True,
@@ -781,6 +844,93 @@ def _cmd_wallpaper_set(args: argparse.Namespace) -> int:
             print(message)
         print("verified" if verified else "warning: could not confirm via read-back")
     return ExitCode.SUCCESS if verified else ExitCode.VALIDATION_ERROR
+
+
+# ---------------------------------------------------------------------------
+# commands — machine-readable command inventory
+# ---------------------------------------------------------------------------
+
+
+# Leaf commands that write to the system. Every other leaf command is
+# read-only. Metadata for --yes/--json/--dry-run support is derived from
+# the live parser so this inventory cannot drift from the real surface.
+MUTATING_COMMANDS = frozenset({"theme.apply", "theme.rollback", "wallpaper.set"})
+
+
+def _iter_leaf_parsers(parser: argparse.ArgumentParser):
+    """Yield ``(command_name, subparser)`` for every leaf command.
+
+    Group parsers with their own subparsers are flattened to
+    ``<group>.<command>`` names; bare groups are yielded as-is.
+    """
+    for action in parser._actions:
+        if not isinstance(action, argparse._SubParsersAction):
+            continue
+        for group_name, group_parser in action.choices.items():
+            sub_actions = [
+                a for a in group_parser._actions
+                if isinstance(a, argparse._SubParsersAction)
+            ]
+            if sub_actions:
+                for cmd_name, cmd_parser in sub_actions[0].choices.items():
+                    yield f"{group_name}.{cmd_name}", cmd_parser
+            else:
+                yield group_name, group_parser
+
+
+def _commands_metadata(parser: argparse.ArgumentParser | None = None) -> list[dict]:
+    """Agent-facing safety metadata for every leaf command."""
+    parser = parser if parser is not None else _build_parser()
+    entries = []
+    for name, sub in _iter_leaf_parsers(parser):
+        options = {
+            opt for action in sub._actions for opt in action.option_strings
+        }
+        entries.append(
+            {
+                "name": name,
+                "mutates": name in MUTATING_COMMANDS,
+                "supports_yes": "--yes" in options,
+                "supports_json": "--json" in options,
+                "supports_dry_run": "--dry-run" in options,
+            }
+        )
+    return entries
+
+
+def _cmd_commands(args: argparse.Namespace) -> int:
+    """List every command with machine-readable safety metadata.
+
+    Agents use this instead of parsing ``--help`` prose to discover what
+    exists, what mutates, and which flags each command supports.
+    """
+    entries = _commands_metadata()
+    if getattr(args, "json", False):
+        print(
+            json.dumps(
+                {
+                    "schema_version": 1,
+                    "command": "commands",
+                    "commands": entries,
+                },
+                indent=2,
+            )
+        )
+        return ExitCode.SUCCESS
+
+    width = max(len(entry["name"]) for entry in entries)
+    for entry in entries:
+        flags = []
+        if entry["supports_dry_run"]:
+            flags.append("--dry-run")
+        if entry["supports_yes"]:
+            flags.append("--yes")
+        if entry["supports_json"]:
+            flags.append("--json")
+        mode = "mutates" if entry["mutates"] else "read-only"
+        line = f"{entry['name']:<{width}}  {mode:<9}  {' '.join(flags)}"
+        print(line.rstrip())
+    return ExitCode.SUCCESS
 
 
 # ---------------------------------------------------------------------------
@@ -903,11 +1053,18 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     version.add_argument("--json", action="store_true", help="emit JSON report")
 
+    commands = sub.add_parser(
+        "commands",
+        help="list every command with machine-readable safety metadata",
+        epilog="example: omni commands --json  # agent-safe discovery",
+    )
+    commands.add_argument("--json", action="store_true", help="emit JSON report")
+
     parser.epilog = (
         "Safety: theme apply, theme rollback and wallpaper set are "
         "write commands and require --yes in non-interactive use; "
-        "validate/preview/status/doctor/list/current/version are "
-        "read-only. Every structured command accepts --json."
+        "validate/preview/status/doctor/list/current/version/commands "
+        "are read-only. Every structured command accepts --json."
     )
     return parser
 
@@ -929,6 +1086,7 @@ def main(argv: list[str] | None = None) -> int:
             ("wallpaper", "set"): _cmd_wallpaper_set,
             ("doctor", None): _cmd_doctor,
             ("version", None): _cmd_version,
+            ("commands", None): _cmd_commands,
         }[(args.group, getattr(args, "command", None))]
         return handler(args)
     except ThemeError as exc:

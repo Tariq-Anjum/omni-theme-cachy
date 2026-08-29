@@ -12,15 +12,22 @@ user overrides, rollback, and a security model for third-party themes.
 
 ## Status
 
-**Session 13 completed** — KDE INI configuration writes are now section-safe:
+**Session 14 completed** — the CLI is now a predictable agent API:
+every mutating command (`theme apply`, `theme rollback`,
+`wallpaper set`) is gated by `--yes`, all JSON surfaces (success and
+failure) carry `schema_version: 1` with diagnostics on stderr only,
+and the new `omni commands [--json]` inventory reports machine-readable
+safety metadata (mutates / supports_yes / supports_json /
+supports_dry_run) derived from the live parser
+(authoritative execution state: `raw/00_PROJECT_MANIFEST.json`).
+Prior baseline: session 13 — KDE INI configuration writes are section-safe:
 a central `core/kde_config.py` owns all KConfig-style parsing and editing
 (verbatim keys, last-wins, no duplicate sections, `[$e]`-style key suffixes
 preserved, byte-precise edits), the Konsole profile surgery and the
 `konsolerc`/`kdeglobals` parsers delegate to it, `configparser` is used
 nowhere, native KDE tooling (`plasma-apply-colorscheme`, `kreadconfig6`)
 remains the mechanism for kdeglobals, and `kwinrc`/`plasmarc` are pinned as
-never-touched by guard tests
-(authoritative execution state: `raw/00_PROJECT_MANIFEST.json`).
+never-touched by guard tests.
 Prior baselines: session 12 write-path security coverage — central path
 policy (`approved_roots`, `validate_write_target`, `PathPolicyError`)
 verified independently across every write site, symlink-safe atomic writes
