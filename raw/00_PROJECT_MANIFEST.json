@@ -1,13 +1,13 @@
 {
-  "status": "SESSION_15_IN_PROGRESS",
+  "status": "SESSION_15_COMPLETED",
   "project": "omni-theme-cachy",
   "repository": "Tariq-Anjum/omni-theme-cachy",
   "branch": "main",
-  "current_baseline": "Session 14 completed",
+  "current_baseline": "Session 15 completed",
   "control_plane_authority": "raw/ manifests and session records are authoritative for execution state; README is descriptive documentation and must not override the control plane",
   "stop_rule": "Read each control-plane file exactly once. If any file's output appears truncated, empty, or incomplete, do NOT re-read it; proceed with what you have, or report BLOCKED naming the exact problem. Never read the same control-plane file twice in one session.",
   "failure_rule": "If a required fact is unspecified or sources conflict, output Status: BLOCKED with the exact unresolved fact and stop. Do not invent a workaround.",
-  "next_sessions": [15, 16, 17, 18],
+  "next_sessions": [16, 17, 18],
   "primary_platform": "CachyOS with KDE Plasma 6",
   "source_directories": ["core", "adapters", "tests"],
   "project_directories": ["core", "adapters", "tests", "templates", "themes", "scripts", "hooks", "docs"],
@@ -155,13 +155,22 @@
     "outcome": "Step 1 audit (CLI is argparse, not Click) confirmed all three mutating commands (theme.apply, theme.rollback, wallpaper.set) already exposed --yes with TTY-confirm/non-TTY-refuse (exit 2); no duplicate flags added; --yes not added to read-only commands. omni commands added (read-only): human table plus --json inventory {schema_version, command:'commands', commands:[{name, mutates, supports_yes, supports_json, supports_dry_run}]} derived from the live argparse parser (_iter_leaf_parsers/_commands_metadata) so metadata cannot drift; the only hand-maintained part is MUTATING_COMMANDS (core/cli.py). JSON failure documents ({schema_version, command, ok:false, errors, warnings}) added to ThemeError paths of theme.apply/rollback/wallpaper set; schema_version+command added to theme.list/current and wallpaper surfaces. Real-apply form not run against the real desktop (tests sandbox HOME/XDG)."
   },
   "session_15": {
-    "status": "IN_PROGRESS",
+    "status": "COMPLETED",
     "resolved_facts": {
       "installer": "install.sh - checkout or managed clone -> dedicated venv -> pip install . -> ~/.local/bin shim exposing omni and omni-theme. No sudo, no system Python mutation. Two source modes: managed clone (default, end user) and OMNI_SOURCE_DIR=<repo checkout> (development and CI).",
       "build_command": "none - pure-Python project; pip install . needs no build step.",
       "ci_provider": "GitHub Actions - .github/workflows/install-smoke-test.yml using an archlinux container; installs the commit under test via OMNI_SOURCE_DIR against the actions/checkout tree; smoke-tests omni version, omni theme list, omni commands --json."
     },
-    "constraints": "Do not reopen the resolved facts. CI must test the commit under test, never origin/main. Install tests use a temporary HOME; never overwrite the developer's real installation. The installer must check the interpreter satisfies pyproject's requires-python."
+    "constraints": "Do not reopen the resolved facts. CI must test the commit under test, never origin/main. Install tests use a temporary HOME; never overwrite the developer's real installation. The installer must check the interpreter satisfies pyproject's requires-python.",
+    "verification": {
+      "tests": "756 passed, 1 skipped (root-skip by design); git diff --check clean; workflow YAML validated",
+      "installer": "install.sh verified in both source modes from clean temporary HOMEs. Managed clone: fresh clone into $HOME/.local/share/omni-theme-cachy, dedicated venv, pip install ., ~/.local/bin shims for omni + omni-theme; idempotent re-run (clean tree -> fetch --prune -> merge --ff-only origin/main); refuse-on-local-changes verified (exit 1, message, files preserved). Local source: OMNI_SOURCE_DIR=<checkout> never clones and leaves checkout git state untouched. No sudo anywhere; requires-python (>=3.11) enforced before venv creation by a tomllib-based check of pyproject.toml (interpreter without tomllib fails with a clear 3.11+ message); empty/relative HOME refused.",
+      "smoke": "From temp HOME via installed shims: omni version, omni-theme version, omni theme list (Default found), omni commands --json (schema_version 1) all pass; installer prints PATH + doctor instructions.",
+      "ci": ".github/workflows/install-smoke-test.yml added: archlinux:latest, pacman git python, OMNI_SOURCE_DIR=\"$GITHUB_WORKSPACE\" so the commit under test (never origin/main) is installed, then omni version / omni theme list / omni commands --json. Local equivalence exercised (fresh local-source install + smoke commands); first real CI execution occurs on push.",
+      "dev_env_repair": "The developer .venv had a corrupt pip tree (mixed-state: ModuleNotFoundError pip._internal.operations.build); recreated with the documented dev setup (python -m venv .venv; pip install -e '.[dev]'); pip check clean; pytest re-verified 756 passed.",
+      "docs": "docs/user/GETTING_STARTED.md install section rewritten: reviewable clone + installer (recommended), one-command curl|bash form with explicit inspect-first guidance, manual/local install, idempotency and refuse-on-local-changes semantics, OMNI_INSTALL_DIR/OMNI_BIN_DIR overrides, theme-discovery note (cwd themes/ or --root). README: Session 15 baseline paragraph + Install section."
+    },
+    "outcome": "install.sh and .github/workflows/install-smoke-test.yml added; GETTING_STARTED.md and README.md updated. All three resolved facts implemented as recorded (installer, build_command none, GitHub Actions archlinux container). No dependencies added; no existing tests weakened. Theme discovery remains cwd-relative by design (documented, not redesigned)."
   },
   "integration": {
     "opencode_files": [],

@@ -1,0 +1,23 @@
+name: install-smoke-test
+
+on: [push, pull_request]
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    container: archlinux:latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install prerequisites
+        run: pacman -Sy --noconfirm git python
+
+      - name: Run installer (local source — installs the commit under test, never origin/main)
+        run: OMNI_SOURCE_DIR="$GITHUB_WORKSPACE" bash install.sh
+
+      - name: Smoke test
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          omni version
+          omni theme list
+          omni commands --json

@@ -12,7 +12,16 @@ user overrides, rollback, and a security model for third-party themes.
 
 ## Status
 
-**Session 14 completed** — the CLI is now a predictable agent API:
+**Session 15 completed** — installation is now a real end-user path:
+`install.sh` clones (or fast-forwards) the repository into
+`~/.local/share/omni-theme-cachy`, installs it into a dedicated venv,
+and exposes `omni`/`omni-theme` via `~/.local/bin` shims — no `sudo`, no
+system-Python mutation, idempotent, and refusing to clobber a modified
+clone. A GitHub Actions smoke test (archlinux container) installs the
+commit under test and runs `omni version`, `omni theme list` and
+`omni commands --json`. See `docs/user/GETTING_STARTED.md` for the
+install methods.
+Prior baseline: session 14 — the CLI is now a predictable agent API:
 every mutating command (`theme apply`, `theme rollback`,
 `wallpaper set`) is gated by `--yes`, all JSON surfaces (success and
 failure) carry `schema_version: 1` with diagnostics on stderr only,
@@ -40,6 +49,18 @@ coverage in `tests/security/`.
 Core engine, adapters, CLI, security layer and docs are in place;
 documented commands are verified against the implementation, including
 live KDE Plasma 6 apply→rollback runs.
+
+## Install
+
+```bash
+git clone https://github.com/Tariq-Anjum/omni-theme-cachy.git
+cd omni-theme-cachy
+bash install.sh
+```
+
+Dedicated venv, `~/.local/bin` shims for `omni` and `omni-theme`, no
+`sudo`, no system-Python changes. Alternatives (one-command form,
+manual/local install): [docs/user/GETTING_STARTED.md](docs/user/GETTING_STARTED.md).
 
 ## Layout
 
