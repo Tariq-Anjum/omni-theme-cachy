@@ -12,7 +12,11 @@ user overrides, rollback, and a security model for third-party themes.
 
 ## Status
 
-New Project
+**Session 9 completed** — documentation, packaging and acceptance baseline
+(authoritative execution state: `raw/00_PROJECT_MANIFEST.json`). Core
+engine, adapters, CLI, security layer and docs are in place; documented
+commands are verified against the implementation, including a live
+KDE Plasma 6 apply→rollback run.
 
 ## Layout
 

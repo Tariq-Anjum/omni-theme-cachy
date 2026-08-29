@@ -1,14 +1,13 @@
 {
-  "status": "SESSION_9_READY",
+  "status": "SESSION_10_READY",
   "project": "omni-theme-cachy",
   "repository": "Tariq-Anjum/omni-theme-cachy",
   "branch": "main",
-  "current_baseline": "Session 8 completed",
+  "current_baseline": "Session 9 completed",
   "control_plane_authority": "raw/ manifests and session records are authoritative for execution state; README is descriptive documentation and must not override the control plane",
   "stop_rule": "Read each control-plane file exactly once. If any file's output appears truncated, empty, or incomplete, do NOT re-read it; proceed with what you have, or report BLOCKED naming the exact problem. Never read the same control-plane file twice in one session.",
   "failure_rule": "If a required fact is unspecified or sources conflict, output Status: BLOCKED with the exact unresolved fact and stop. Do not invent a workaround.",
   "next_sessions": [
-    9,
     10,
     11,
     12,
@@ -118,6 +117,16 @@
       "the ownership_policy in this manifest is missing or contradicted by another control-plane record"
     ],
     "outcome": "Central validator added: filesystem.approved_roots() (XDG-derived allowlist: $XDG_CONFIG_HOME/$XDG_DATA_HOME/$XDG_STATE_HOME), filesystem.validate_write_target() (canonicalize+resolve, containment, sibling-prefix/traversal/symlink-escape rejection, ownership policy per manifest; no repair) enforced inside filesystem.atomic_write; non-atomic managed write sites (adapter journals, backup snapshot/restore, wallpaper cache copy) route through the same validator. PathPolicyError added to core/errors.py. CLI tests now sandbox HOME/XDG (autouse fixture) so no test touches the real home. Subprocess audit clean: argument arrays only, no shell=True. Tests: tests/security/ (path policy, ownership, write coverage, failure/rollback/idempotency)."
+  },
+  "session_9": {
+    "status": "COMPLETED",
+    "verification": {
+      "packaging": "isolated venv install (pip install .) verified: omni + omni-theme entry points resolve; no sudo, no global install",
+      "tests": "647 passed, 1 skipped (skip needs root by design); compileall core+adapters clean",
+      "cli_surface": "all documented commands and flags verified against the parser (--yes, --dry-run, --force, --strict, --json, --root, --state-root)",
+      "kde_live": "real-desktop apply->rollback pair executed on CachyOS Plasma 6.7.4 (Wayland): apply default --yes -> VERIFIED, kdeglobals ColorScheme=OmniTheme observed via kreadconfig6; rollback --yes -> ROLLED_BACK, state consistent; pre-session desktop state (SweetAmbarBlue + WhiteSur/#light) restored afterwards"
+    },
+    "outcome": "Architecture docs (ARCHITECTURE, THEME_MODEL, ADAPTERS, ACTIVATION, OWNERSHIP_AND_SECURITY, DIVERGENCE_FROM_OMARCHY) and user docs (GETTING_STARTED, CREATING_THEMES, OVERRIDES, ROLLBACK, TROUBLESHOOTING, GTK, OPTIONAL_KWIN_SCRIPTS) written against actual code; CLI.md reconciled with the verified parser surface. Divergence doc grounded in docs/research/ only. Honest gaps recorded: third-party theme provenance filtering NOT implemented (no installer yet); no critical adapters registered; direct-GTK is adapter-construction option, not a CLI flag; KWin scripts not shipped and kwinrc permanently out of scope."
   },
   "integration": {
     "opencode_files": [],

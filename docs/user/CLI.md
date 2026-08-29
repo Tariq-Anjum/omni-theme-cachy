@@ -1,4 +1,4 @@
-# CLI Reference (Session 07)
+# CLI Reference
 
 `omni` (alias `omni-theme`) is the automation-friendly command surface.
 Everything a script or coding agent needs is parseable: exit codes are
@@ -10,20 +10,24 @@ is gated by `--yes` in non-interactive shells.
 ```
 omni
 ├── theme
-│   ├── list                            # read
-│   ├── current                         # read
-│   ├── apply <name> [--yes]            # write
-│   ├── validate <name> [--strict]      # read
-│   ├── preview <name>                  # read
-│   └── rollback [--yes]                # write
+│   ├── list                                # read
+│   ├── current                             # read
+│   ├── apply <name> [--yes] [--dry-run] [--force]   # write
+│   ├── validate <name> [--strict]          # read
+│   ├── preview <name>                      # read
+│   └── rollback [--yes]                    # write
 ├── wallpaper
-│   ├── list                            # read
-│   ├── current                         # read
-│   └── set <path> [--yes]              # write
-├── status                              # read
-├── doctor                              # read
-└── version                             # read
+│   ├── list                                # read
+│   ├── current                             # read
+│   └── set <path> [--yes]                  # write
+├── status                                  # read
+├── doctor                                  # read
+└── version                                 # read
 ```
+
+Global-ish flags available on most subcommands: `--root DIR` (themes
+directory; default `themes/` relative to the working directory),
+`--state-root DIR` (override the state root; testing), `--json`.
 
 ## Safety convention
 
@@ -36,6 +40,8 @@ omni
 * `theme validate --strict` treats warnings as validation errors.
 * `theme apply --force` overwrites user-modified managed targets;
   every forced overwrite is reported as a warning.
+* `theme apply --dry-run` executes the read-only prefix of the pipeline
+  in a sandbox and reports the exact plan (equivalent to `theme preview`).
 
 ## Machine-readable mode
 
@@ -132,6 +138,28 @@ omni doctor --json | jq '.missing_binaries, .adapter_capabilities, .state_consis
 Preview resolves, merges, validates, renders and plans targets and
 adapter capabilities — but never writes live targets, mutates
 current/previous state or dispatches mutation events.
+
+### `theme current` / `version` (`no envelope`)
+
+```json
+{"current_theme": "default"}
+```
+
+```json
+{"schema_version": 1, "command": "version", "package": "0.1.0", "state_schema": 1}
+```
+
+`theme current` exits `ACTIVATION_FAILURE` when no theme is active.
+
+### `wallpaper list` / `wallpaper current` / `wallpaper set`
+
+```json
+{"active": ["file:///…png"], "wallpapers": [{"path": "…", "origin": "theme", "theme": "default", "active": true}]}
+```
+
+`wallpaper set` caches the image (content-hash) into the engine's
+wallpaper cache, applies it via `plasma-apply-wallpaperimage`, journals
+the pre-Omni wallpaper for rollback, and verifies by read-back.
 
 ## Examples for agents
 
