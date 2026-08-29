@@ -12,7 +12,15 @@ user overrides, rollback, and a security model for third-party themes.
 
 ## Status
 
-**Session 17 completed** — OpenCode integration is in place so coding
+**Session 18 completed — released as `v0.1.0`** (tagged on the release
+commit and pushed). The final verification gate passed end to end:
+audits clean, 782 tests passing (1 skipped by design), CLI acceptance,
+clean-HOME installer smoke test, OpenCode runtime discovery, and a
+live-KDE apply/verify/restore cycle on Plasma 6.7.4 (Wayland); see
+`docs/RELEASE_VERIFICATION.md` for exactly what is implemented, tested,
+verified on real KDE, supported but unverified, unsupported, or a known
+issue, and `CHANGELOG.md` for the capability history. Prior baseline:
+session 17 — OpenCode integration is in place so coding
 agents can drive the repository deterministically: `opencode.json`
 declares conservative permissions (read-only omni commands run without
 prompting, desktop mutation and `git push`/`git tag` require asking,

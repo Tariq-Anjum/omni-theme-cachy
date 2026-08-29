@@ -1,13 +1,13 @@
 {
-  "status": "SESSION_17_COMPLETED",
+  "status": "RELEASE_v0.1.0_TAGGED",
   "project": "omni-theme-cachy",
   "repository": "Tariq-Anjum/omni-theme-cachy",
   "branch": "main",
-  "current_baseline": "Session 17 completed",
+  "current_baseline": "Session 18 completed",
   "control_plane_authority": "raw/ manifests and session records are authoritative for execution state; README is descriptive documentation and must not override the control plane",
   "stop_rule": "Read each control-plane file exactly once. If any file's output appears truncated, empty, or incomplete, do NOT re-read it; proceed with what you have, or report BLOCKED naming the exact problem. Never read the same control-plane file twice in one session.",
   "failure_rule": "If a required fact is unspecified or sources conflict, output Status: BLOCKED with the exact unresolved fact and stop. Do not invent a workaround.",
-  "next_sessions": [18],
+  "next_sessions": [],
   "primary_platform": "CachyOS with KDE Plasma 6",
   "source_directories": ["core", "adapters", "tests"],
   "project_directories": ["core", "adapters", "tests", "templates", "themes", "scripts", "hooks", "docs"],
@@ -194,6 +194,25 @@
       "repair": "parent-directory config /mnt/MD/Project/Theme/opencode.json (outside the repo) contained malformed JSONC (stray fragment on the model line) breaking `opencode debug config`; repaired minimally by removing the stray token, all other keys untouched"
     },
     "outcome": "opencode.json added with conservative permissions: read/glob/grep/list + webfetch/websearch allow; bash granular rules - all read-only omni commands (theme list/current/validate/preview, wallpaper list/current, status, doctor, version, commands) plus pytest/compileall/audit scripts/git status|diff|log allowed without prompting; everything else in bash asks; git push/tag ask; pip/npm install, sudo, curl, wget deny; edit asks. Five OpenCode commands in .opencode/commands/ (omni-check, omni-preview, omni-apply, omni-security, omni-release-check) wrap the omni CLI only; omni-apply requires a clean --dry-run before --yes. Mapping documented in docs/user/OPENCODE.md and referenced from AGENTS.md. No custom tools."
+  },
+  "session_18": {
+    "status": "COMPLETED",
+    "commit": "6415a41",
+    "tag": "v0.1.0",
+    "verification": {
+      "clean_state": "git status clean; git diff --check clean at gate start",
+      "audits": "audit_omarchy_divergence clean; audit_write_paths enumerates 36 candidate sites (inventory current); MUTATING_COMMANDS {theme.apply, theme.rollback, wallpaper.set} matches commands --json and opencode.json bash rules (forward note from S17 verified)",
+      "tests": "782 passed, 1 skipped (root-skip by design); compileall core+adapters+hooks+scripts clean; no ruff/mypy introduced (not project policy)",
+      "cli": "version, commands --json (schema_version 1, 13 commands), theme list, theme validate default, theme preview --json, doctor --json, status --json, theme apply --dry-run --yes --json all pass; pre-existing untracked conflict on OmniTheme.colors surfaced in dry-run as designed",
+      "kde_live": "real apply on CachyOS Plasma 6.7.4 (Wayland): apply --yes --force VERIFIED with all four adapters applied+verified; kdeglobals ColorScheme=OmniTheme observed via kreadconfig6; wallpaper/Konsole/VS Code targets confirmed; gtk colors.css re-propagated by kde-gtk-config; status/theme.current consistent (managed_targets=1)",
+      "rollback_live": "rollback --yes refused with the documented deterministic error (no previous generation; first-ever apply) - refusal contract verified live; desktop restored from adapter journals: VS Code settings.json byte-exact (sha256 == journal file_hash_before), Konsole profile byte-exact from adapter backup (sha256 match), scheme restored via native plasma-apply-colorscheme SweetAmbarBlue, gtk colors.css auto re-propagated (sha256 match), wallpaper Image key restored to journaled pre-Omni value WhiteSur/#light + shell refresh; engine bookkeeping cleaned to pre-session state_exists=false",
+      "installer": "clean temp HOME, OMNI_SOURCE_DIR at the release commit: install.sh succeeded without sudo; omni version / theme list / commands --json pass from installed shims; temp HOME removed",
+      "opencode": "opencode.json parses; five commands present; OPENCODE.md references them; tests/test_opencode_integration.py 26 passed; runtime discovery verified via opencode debug config (1.18.23) listing all five omni-* commands",
+      "claims": "109 candidate claims reviewed; Hyprland/Quickshell hits confined to divergence/research contexts; README tagline 'universal' reworded to 'whole-desktop' (scope is CachyOS + KDE Plasma 6); GTK claims already capability-specific",
+      "changelog": "CHANGELOG.md created documenting Sessions 8-18 by capability",
+      "release": "release commit 6415a41 (CHANGELOG + README claim fix) tagged v0.1.0 and pushed with the tag; docs/RELEASE_VERIFICATION.md records the five-way label distinction (implemented / tested / verified on real KDE / supported but unverified / unsupported / known issue)"
+    },
+    "outcome": "Release gate passed. v0.1.0 tagged and pushed. All sessions 8-18 complete; next_sessions empty. Unverified items are enumerated in docs/RELEASE_VERIFICATION.md section 12, not silently dropped."
   },
   "integration": {
     "opencode_files": [
