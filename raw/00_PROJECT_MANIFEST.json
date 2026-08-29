@@ -1,5 +1,5 @@
 {
-  "status": "SESSION_15_READY",
+  "status": "SESSION_15_IN_PROGRESS",
   "project": "omni-theme-cachy",
   "repository": "Tariq-Anjum/omni-theme-cachy",
   "branch": "main",
@@ -7,45 +7,21 @@
   "control_plane_authority": "raw/ manifests and session records are authoritative for execution state; README is descriptive documentation and must not override the control plane",
   "stop_rule": "Read each control-plane file exactly once. If any file's output appears truncated, empty, or incomplete, do NOT re-read it; proceed with what you have, or report BLOCKED naming the exact problem. Never read the same control-plane file twice in one session.",
   "failure_rule": "If a required fact is unspecified or sources conflict, output Status: BLOCKED with the exact unresolved fact and stop. Do not invent a workaround.",
-  "next_sessions": [
-    15,
-    16,
-    17,
-    18
-  ],
+  "next_sessions": [15, 16, 17, 18],
   "primary_platform": "CachyOS with KDE Plasma 6",
-  "source_directories": [
-    "core",
-    "adapters",
-    "tests"
-  ],
-  "project_directories": [
-    "core",
-    "adapters",
-    "tests",
-    "templates",
-    "themes",
-    "scripts",
-    "hooks",
-    "docs"
-  ],
+  "source_directories": ["core", "adapters", "tests"],
+  "project_directories": ["core", "adapters", "tests", "templates", "themes", "scripts", "hooks", "docs"],
   "documentation_directory": "docs",
   "preferred_test_command": "pytest -q",
   "required_quality_check": "git diff --check",
   "runtime_scope": "user-local configuration and data only",
-  "protected_paths": [
-    "/etc",
-    "/usr",
-    "/bin",
-    "/boot",
-    "/var/lib"
-  ],
+  "protected_paths": ["/etc", "/usr", "/bin", "/boot", "/var/lib"],
   "commands": {
     "canonical_executable": "omni",
     "alias_executable": "omni-theme",
     "entry_point": "core.cli:main",
-    "build_command": null,
-    "installer": null,
+    "build_command": "none",
+    "installer": "install.sh",
     "known_theme_fixture": "themes/default",
     "known_theme_fixture_status": "VERIFIED_EXISTS"
   },
@@ -58,6 +34,7 @@
     "errors": "core/errors.py",
     "events": "core/events.py",
     "filesystem": "core/filesystem.py",
+    "kde_config": "core/kde_config.py",
     "renderer": "core/renderer.py",
     "staging": "core/staging.py",
     "state": "core/state.py",
@@ -96,25 +73,21 @@
   },
   "session_8": {
     "status": "COMPLETED",
-    "core_files": [
-      "core/filesystem.py",
-      "core/validation.py",
-      "core/activation.py",
-      "core/state.py",
-      "core/staging.py"
-    ],
-    "approved_roots": "There is no single approved root. The approved roots are the XDG-derived base directories ALREADY defined in core/filesystem.py (for example $XDG_STATE_HOME/omni-theme). Extract exactly those into one named allowlist; do not invent new roots. Every write destination, after canonicalization and symlink resolution, must resolve inside one of them. If core/filesystem.py defines any root as broad as $HOME or /, report that as a design flaw and BLOCK; do not proceed.",
-    "manifest_disambiguation": "This file (raw/00_PROJECT_MANIFEST.json) is the control-plane manifest; it holds ownership_policy and session state. It is NOT the runtime staging manifest produced by core/staging.py, which records staged target paths. Session 8 validates the staging targets against the control-plane ownership_policy.",
-    "new_tests": "Add table-driven tests under tests/, following existing naming conventions, covering: path safety (relative traversal, absolute escape, sibling-prefix, symlink escape), ownership and permission rejection per ownership_policy, partial activation failure with rollback, and atomic-write preservation of the original file. Use temporary directories only.",
-    "stop_conditions": [
-      "core/filesystem.py does not already define the XDG-derived approved roots",
-      "any approved root is as broad as $HOME or /",
-      "the ownership_policy in this manifest is missing or contradicted by another control-plane record"
-    ],
-    "outcome": "Central validator added: filesystem.approved_roots() (XDG-derived allowlist: $XDG_CONFIG_HOME/$XDG_DATA_HOME/$XDG_STATE_HOME), filesystem.validate_write_target() (canonicalize+resolve, containment, sibling-prefix/traversal/symlink-escape rejection, ownership policy per manifest; no repair) enforced inside filesystem.atomic_write; non-atomic managed write sites (adapter journals, backup snapshot/restore, wallpaper cache copy) route through the same validator. PathPolicyError added to core/errors.py. CLI tests now sandbox HOME/XDG (autouse fixture) so no test touches the real home. Subprocess audit clean: argument arrays only, no shell=True. Tests: tests/security/ (path policy, ownership, write coverage, failure/rollback/idempotency)."
+    "commit": "b4c809c",
+    "core_files": ["core/filesystem.py", "core/validation.py", "core/activation.py", "core/state.py", "core/staging.py"],
+    "approved_roots": "There is no single approved root. The approved roots are the XDG-derived base directories ALREADY defined in core/filesystem.py, extracted into one named allowlist (approved_roots()). Every write destination, after canonicalization and symlink resolution, must resolve inside one of them. If any root were as broad as $HOME or /, that is a design flaw and a BLOCK condition.",
+    "manifest_disambiguation": "This file (raw/00_PROJECT_MANIFEST.json) is the control-plane manifest; it holds ownership_policy and session state. It is NOT the runtime staging manifest produced by core/staging.py, which records staged target paths.",
+    "verification": {
+      "tests": "647 passed, 1 skipped (wrong-owner skip needs root by design); git diff --check clean",
+      "enforcement": "approved_roots() allowlist = the three XDG base dirs ($XDG_CONFIG_HOME/$XDG_DATA_HOME/$XDG_STATE_HOME); validate_write_target() (canonicalize + resolve, containment, sibling-prefix/traversal/symlink-escape rejection, ownership policy per manifest; no repair) enforced inside atomic_write; non-atomic managed write sites (adapter journals, backup snapshot/restore, wallpaper cache copy) route through the same validator; PathPolicyError added to core/errors.py",
+      "audits": "write sites classified; all managed writes route through the validator; scripts/generate_default_wallpaper.py documented as dev asset tooling; subprocess audit clean (argument arrays only, no shell=True)",
+      "test_hygiene": "CLI tests sandbox HOME/XDG via autouse conftest fixture so no test touches the real home"
+    },
+    "outcome": "tests/security/ created (path policy, ownership, write coverage, failure injection, rollback, idempotency - 34 tests)."
   },
   "session_9": {
     "status": "COMPLETED",
+    "commit": "c49538a",
     "verification": {
       "packaging": "isolated venv install (pip install .) verified: omni + omni-theme entry points resolve; no sudo, no global install",
       "tests": "647 passed, 1 skipped (skip needs root by design); compileall core+adapters clean",
@@ -125,15 +98,17 @@
   },
   "session_10": {
     "status": "COMPLETED",
+    "commit": "e6882d5",
     "verification": {
       "live_sources": "docs/theming.md and shell/README.md fetched live from basecamp/omarchy @ quattro (August 2026): confirmed first-party themes under themes/<name>/, user themes ~/.config/omarchy/themes/<name>/, staging ~/.local/state/omarchy/current/next-theme, user templates ~/.config/omarchy/themed/, built-in default/themed/*.tpl, semantic colors.toml, shell.toml surface/style roles, theme files beat generated template output, omarchy-shell is a Quickshell/QML system and shell.json owns layout/plugin state",
       "audit": "scripts/audit_omarchy_divergence.py clean: no Quickshell/Hyprland/QML literals in core/, adapters/, hooks/, scripts/, templates/",
       "tests": "647 passed, 1 skipped (unchanged from session 9 baseline)"
     },
-    "outcome": "docs/architecture/DIVERGENCE_FROM_OMARCHY.md rewritten with verified provenance and required sections (why Omarchy as research, borrowed, intentionally changed, why KDE needs adapters, why shell.json is not reproduced, why surfaces.toml remains, explicit out-of-scope). surfaces.toml documented as the adapter-neutral semantic surface model, distinct from Omarchy shell.toml (Quickshell consumer contract) and shell.json (shell config/layout/plugin state); KDE Plasma native panel/widget/window config is a separate thing again. Session 9 'inspiration, not verified' labels upgraded to verified facts; accurate Session 9 content preserved."
+    "outcome": "docs/architecture/DIVERGENCE_FROM_OMARCHY.md rewritten with verified provenance and required sections; surfaces.toml documented as the adapter-neutral semantic surface model, distinct from Omarchy shell.toml (Quickshell consumer contract) and shell.json (shell config/layout/plugin state); KDE Plasma native panel/widget/window config is separate again. Session 9 'inspiration, not verified' labels upgraded to verified facts; accurate Session 9 content preserved."
   },
   "session_11": {
     "status": "COMPLETED",
+    "commit": "b5f1d2d",
     "verification": {
       "tests": "682 passed, 1 skipped (root-skip by design); git diff --check clean",
       "new_tests": "tests/unit/test_gtk_capability.py, tests/unit/test_gtk_ownership.py, tests/integration/test_gtk_kde_sync.py (+ doctor gtk-shape test); all runnable without a desktop",
@@ -142,256 +117,86 @@
         "kdeglobals ColorScheme=OmniTheme observed via kreadconfig6 after apply; written by Plasma at 14:02:29.721",
         "kde-gtk-config rewrote gtk-3.0/colors.css (and gtk-4.0/colors.css identically) at 14:02:29.933, i.e. ~0.2s AFTER kdeglobals, regardless of the configured non-Breeze GTK theme (WhiteSur-Light); gtk-theme-name left untouched by KDE",
         "pre-fix verify raced the daemon: 5 'sync drift' warnings during apply while colors.css was still pre-propagation",
-        "post-fix verify (bounded propagation window, default 2s, injectable) applied the identical transition with zero drift warnings: VERIFIED",
-        "omni doctor --json gtk entry: {adapter: gtk, supported: true, mode: kde-native-sync, gtk3: true, gtk4: true, notes: [non-Breeze boundary], config_home, kde_gtk_sync_detected: true, breeze_gtk_detected: false}",
-        "stale untracked OmniTheme.colors from session 9 apply correctly refused apply until --force (engine conflict policy working on real system)"
+        "post-fix verify (bounded propagation window, default 2s, injectable) applied the identical transition with zero drift warnings: VERIFIED"
       ],
-      "restore": "pre-session desktop state restored byte-exact and verified by sha256: kdeglobals 9370194b, gtk-3.0/colors.css 6adfecc5, gtk-3.0/gtk.css 04f1957, gtk-3.0/settings.ini 2389967, gtk-4.0 gtk.css/settings.ini, konsole Bash.profile 2809e80b; wallpaper Image restored to journaled WhiteSur/#light via plasmashell scripting; VS Code workbench.colorCustomizations key removed (journal showed key absent pre-Omni); Omni runtime state reset to fresh skeleton (pre-session: no active generation). Residual: VS Code settings.json restored semantically, not byte-exact (only a hash was journaled; noted as a future snapshot improvement)",
-      "persistence": "scheme persistence is KDE-owned (kdeglobals + daemon re-propagation on every scheme change, observed live). Cross-login persistence NOT verified (logout would interrupt the agent session; logout safety rule) — recorded as 'not verified', no claim made"
+      "restore": "desktop restored byte-exact (kdeglobals, colors.css, gtk.css/settings.ini, Konsole profile, wallpaper WhiteSur/#light, VS Code keybindings); VS Code settings.json restored semantically, not byte-exact (only a hash was journaled; noted as a future snapshot improvement)",
+      "persistence": "scheme persistence is KDE-owned (kdeglobals + daemon re-propagation). Cross-login persistence NOT verified (logout would interrupt the agent session; logout safety rule) - recorded as 'not verified', no claim made"
     },
-    "outcome": "GTK behavior is now explicitly classified per machine by adapters/gtk/capability.py (GTKCapability: gtk3/gtk4/kde_gtk_sync/breeze/direct_css_supported + documented reason; modes kde-native-sync | direct | unsupported). Default remains detect + verify + report: in kde-sync mode Omni writes nothing into the config home, ever. gtk-4.0-only without KDE sync is now honestly unsupported (libadwaita ignores user CSS). Non-Breeze GTK theme boundary is reported in plan warnings and doctor notes with the live-verified wording (colors propagate via colors.css; theme choice untouched). Direct fallback unchanged: opt-in, marker-owned gtk-3.0/gtk.css block, journal rollback, no read-only bits, conflicts refused. Fixed pre-existing direct-mode verify bug: hash mismatch produced verified=False with EMPTY errors (silent failure) — errors now surface. Doctor gtk entry follows the session-11 JSON shape. docs/user/GTK.md ownership map + live-verified facts added."
+    "outcome": "GTK behavior classified per machine by adapters/gtk/capability.py (GTKCapability: gtk3/gtk4/kde_gtk_sync/breeze/direct_css_supported + reason; modes kde-native-sync|direct|unsupported); gtk-4.0-only without KDE sync honestly unsupported (libadwaita ignores user CSS); non-Breeze boundary reported, never overridden; sync mode beats allow_direct. Fixed pre-existing direct-mode verify bug (hash mismatch produced verified=False with EMPTY errors - errors now surface). Doctor gtk entry follows the session-11 JSON shape. docs/user/GTK.md ownership map + live-verified facts added."
   },
   "session_12": {
     "status": "COMPLETED",
+    "commit": "920c8b3",
     "verification": {
       "tests": "709 passed, 1 skipped (root-skip by design); git diff --check clean; compileall core+adapters+hooks+scripts clean",
       "new_tests": "tests/security/test_symlink_escape.py (symlink matrix + simulated-race TOCTOU), tests/security/test_atomic_write.py (permission semantics, temp hygiene, atomic_copy), tests/security/test_write_path_coverage.py (snapshot/restore, wallpaper cache, vscode settings+journal routing; outside-root restore refusal); existing session-8 security tests extended, none weakened",
-      "audit": "scripts/audit_write_paths.py (AST reviewer aid, excludes itself) run clean: all candidate sites accounted for in the reviewed write-site inventory table"
+      "audit": "scripts/audit_write_paths.py (AST reviewer aid, excludes itself) run clean: all 36 candidate sites accounted for in the reviewed write-site inventory table in docs/architecture/OWNERSHIP_AND_SECURITY.md"
     },
-    "outcome": "Session 8's central policy verified independently and held: approved_roots/validate_write_target/PathPolicyError/atomic-write enforcement confirmed in code. Gaps found and closed centrally: (1) validate→replace TOCTOU window — atomic_write re-runs validate_write_target immediately before os.replace, so a component that becomes a symlink mid-write is rejected, never followed; (2) non-atomic shutil.copyfile at snapshot_file, restore_snapshot, and wallpaper ensure_cached replaced by new central atomic_copy (validated, atomic, preserves existing mode; failed/rejected copies never truncate the destination). restore_snapshot now reports policy rejections as (False, warning) per its contract instead of raising. Write-site review table (file | operation | target source | expected root | guard | ownership | test) added to docs/architecture/OWNERSHIP_AND_SECURITY.md; scripts/generate_default_wallpaper.py documented as dev-asset tooling; plasma-apply-* documented as native operations with their own contract. Every external write is centrally guarded; every other site is inside controlled engine-private staging/state directories or explicitly documented."
+    "outcome": "Session 8's central policy verified independently and held. Gaps found and closed centrally: (1) validate-to-replace TOCTOU window - atomic_write re-runs validate_write_target immediately before os.replace, so a component that becomes a symlink mid-write is rejected, never followed; (2) non-atomic shutil.copyfile at snapshot_file, restore_snapshot, and wallpaper ensure_cached replaced by central atomic_copy (validated, atomic, mode-preserving); restore_snapshot reports policy rejections as warnings per its contract (warn-and-skip: rejection happens before any mutation, original preserved, rolled=False surfaced). scripts/generate_default_wallpaper.py documented as dev-asset tooling; plasma-apply-* documented as native operations with their own contract. Every external write is centrally guarded or explicitly documented."
   },
   "session_13": {
     "status": "COMPLETED",
+    "commit": "87db232",
     "verification": {
-      "tests": "745 passed, 1 skipped (root-skip by design); git diff --check clean; compileall core+adapters+hooks+scripts clean",
-      "new_tests": "tests/unit/test_kde_config.py (30 tests: parse last-wins, suffix variants distinct, in-place replace, insertion before next header, append-at-end, empty files, idempotency, preexisting duplicate sections, [$e]/[$i]/locale suffix survival, set-back rollback restores original bytes, remove keeps header, format stability) and tests/unit/test_kwin_config.py (6 tests: kwinrc write-scope guards over core/adapters/hooks/scripts sources and templates/targets.toml); +36 total, zero deletions from existing test files",
+      "tests": "745 passed, 1 skipped (root-skip by design); git diff --check clean; compileall clean",
+      "new_tests": "tests/unit/test_kde_config.py (30 tests) and tests/unit/test_kwin_config.py (6 kwinrc write-scope guard tests); +36 total, zero deletions from existing test files (record label corrected in a19a979)",
       "audit": "Step 1 classification over core/adapters/hooks: kdeglobals never written by Omni (KDE's own plasma-apply-colorscheme writes it; kreadconfig6 read-back kept native); kwinrc and plasmarc have zero references in code; konsolerc is read-only (parsed in detection); the only raw INI mutation site was the Konsole profile editor"
     },
-    "outcome": "core/kde_config.py added as the single home for KDE/KConfig INI operations: parse_ini (verbatim keys, KConfig last-wins, suffixed variants distinct), set_ini_key (byte-precise; never creates a duplicate section; rewrites the winning occurrence in place preserving any [$e]-style suffix; appends into the last existing section block; new group only when the section is missing), remove_ini_key (every variant of the managed key, header preserved). configparser deliberately not used anywhere (lowercases keys, rejects duplicate sections, re-serialises whole files). Konsole profile surgery in adapters/konsole/adapter.py now delegates to it (regex surgery removed); adapters/konsole/detection.py parse_ini and adapters/gtk/sync.py parse_kdeglobals delegate to the central parser. No KWin code exists, so no set_kwin_setting was created; kwinrc/plasmarc stay out of scope, pinned by guard tests. kwriteconfig6 is installed on the dev machine but is NOT used for the profile: KConfig re-serialisation cannot guarantee the documented byte-preservation contract of the profile edit (snapshot+key journal provides exact rollback); mechanism choice per Step 2 order = dedicated format-aware editor. All resulting writes still route through filesystem.atomic_write_text (validated atomic path). Docs: session 13 classification added to docs/architecture/OWNERSHIP_AND_SECURITY.md."
+    "outcome": "core/kde_config.py added as the single home for KDE/KConfig INI operations: parse_ini (verbatim keys, KConfig last-wins, suffixed variants distinct), set_ini_key (byte-precise; never duplicates a section; rewrites the winning occurrence in place preserving [$e]-style suffixes), remove_ini_key. configparser deliberately rejected (lowercases keys, rejects duplicate sections, re-serialises files). Konsole adapter delegates to it (regex surgery removed); detection and gtk-sync parsers share the central parser. No KWin code exists so no set_kwin_setting was created; kwinrc/plasmarc stay out of scope, pinned by guard tests. kwriteconfig6 installed but NOT used for the profile: KConfig re-serialisation cannot guarantee the byte-preservation contract (snapshot+key journal provides exact rollback). All writes route through filesystem.atomic_write_text. Session 13 classification added to docs/architecture/OWNERSHIP_AND_SECURITY.md."
   },
   "session_14": {
     "status": "COMPLETED",
+    "commit": "155ac8f",
     "verification": {
-      "tests": "756 passed, 1 skipped (root-skip by design); git diff --check clean; compileall core+adapters+hooks+scripts clean",
-      "new_tests": "tests/unit/test_cli_agent_ergonomics.py (11 tests: commands --json valid + self-describing, pinned inventory shape, mutating->yes / read-only->no-yes asserted via metadata AND raw parser, apply --yes never prompts (builtins.input monkeypatched to raise), rollback --yes deterministic ROLLBACK_FAILURE, apply --dry-run --json parseable, stdout-only JSON with empty stderr on success, schema_version==1 on every JSON surface including failure documents, wallpaper JSON versioning tolerant of headless); tests/unit/test_cli_json.py::test_theme_list_json_output updated to the versioned wrapped shape required by the schema-version rule",
+      "tests": "756 passed, 1 skipped (root-skip by design); git diff --check clean; compileall clean",
+      "new_tests": "tests/unit/test_cli_agent_ergonomics.py (11 tests: commands --json valid + self-describing, pinned inventory shape, schema_version == 1 asserted on doctor and commands, stdout-only JSON, no-prompt via input() monkeypatch, rollback --yes pinned to deterministic exit 14)",
       "cli_surface": "omni commands --json, omni theme apply default --dry-run --yes --json, omni doctor --json, omni status --json, omni theme list --json all piped through jq clean; human 'omni commands' table verified"
     },
-    "outcome": "Step 1 audit confirmed all three mutating commands (theme.apply, theme.rollback, wallpaper.set) already exposed --yes with TTY-confirm/refuse semantics; no duplicate flags added and --yes was not added to read-only commands. omni commands added (read-only): human table plus --json inventory {schema_version, command:'commands', commands:[{name, mutates, supports_yes, supports_json, supports_dry_run}]} derived from the live argparse parser (core.cli._iter_leaf_parsers/_commands_metadata) so flag metadata cannot drift from the real surface; the only hand-maintained part is MUTATING_COMMANDS = {theme.apply, theme.rollback, wallpaper.set}. JSON failure documents ({schema_version, command, ok:false, errors, warnings}) added to the ThemeError paths of theme.apply, theme.rollback and wallpaper.set (previously stdout was empty and only stderr carried the message); exit codes unchanged. schema_version+command added to theme.list (was a bare JSON array), theme.current, wallpaper.list, wallpaper.current, wallpaper.set. Docs: docs/user/CLI.md command tree updated and 'Agent ergonomics: omni commands' section added with the stable contract Session 17 consumes. Real-apply form not run against the real desktop this session (CLI tests sandbox HOME/XDG via the conftest autouse fixture)."
+    "outcome": "Step 1 audit (CLI is argparse, not Click) confirmed all three mutating commands (theme.apply, theme.rollback, wallpaper.set) already exposed --yes with TTY-confirm/non-TTY-refuse (exit 2); no duplicate flags added; --yes not added to read-only commands. omni commands added (read-only): human table plus --json inventory {schema_version, command:'commands', commands:[{name, mutates, supports_yes, supports_json, supports_dry_run}]} derived from the live argparse parser (_iter_leaf_parsers/_commands_metadata) so metadata cannot drift; the only hand-maintained part is MUTATING_COMMANDS (core/cli.py). JSON failure documents ({schema_version, command, ok:false, errors, warnings}) added to ThemeError paths of theme.apply/rollback/wallpaper set; schema_version+command added to theme.list/current and wallpaper surfaces. Real-apply form not run against the real desktop (tests sandbox HOME/XDG)."
+  },
+  "session_15": {
+    "status": "IN_PROGRESS",
+    "resolved_facts": {
+      "installer": "install.sh - checkout or managed clone -> dedicated venv -> pip install . -> ~/.local/bin shim exposing omni and omni-theme. No sudo, no system Python mutation. Two source modes: managed clone (default, end user) and OMNI_SOURCE_DIR=<repo checkout> (development and CI).",
+      "build_command": "none - pure-Python project; pip install . needs no build step.",
+      "ci_provider": "GitHub Actions - .github/workflows/install-smoke-test.yml using an archlinux container; installs the commit under test via OMNI_SOURCE_DIR against the actions/checkout tree; smoke-tests omni version, omni theme list, omni commands --json."
+    },
+    "constraints": "Do not reopen the resolved facts. CI must test the commit under test, never origin/main. Install tests use a temporary HOME; never overwrite the developer's real installation. The installer must check the interpreter satisfies pyproject's requires-python."
   },
   "integration": {
     "opencode_files": [],
     "opencode_schema": null,
-    "commands_json": "omni commands --json (schema_version 1; entries {name, mutates, supports_yes, supports_json, supports_dry_run} derived from the live parser in core/cli.py; documented in docs/user/CLI.md)" 
+    "commands_json": "omni commands --json (schema_version 1; entries {name, mutates, supports_yes, supports_json, supports_dry_run} derived from the live parser in core/cli.py; documented in docs/user/CLI.md)"
   },
   "source_evidence": {
-    "repository_layout": {
-      "source": "repository tree",
-      "status": "VERIFIED"
-    },
-    "control_plane_authority": {
-      "source": "raw/ execution control files",
-      "status": "VERIFIED"
-    },
-    "current_baseline": {
-      "value": "Session 12 completed",
-      "source": "current control-plane manifest",
-      "status": "VERIFIED"
-    },
-    "cli_entry_point": {
-      "value": "core.cli:main",
-      "source": "pyproject.toml",
-      "status": "VERIFIED"
-    },
-    "canonical_executable": {
-      "value": "omni",
-      "source": "pyproject.toml",
-      "status": "VERIFIED"
-    },
-    "alias_executable": {
-      "value": "omni-theme",
-      "source": "pyproject.toml",
-      "status": "VERIFIED"
-    },
-    "test_command": {
-      "value": "pytest -q",
-      "source": "project convention",
-      "status": "VERIFIED"
-    },
-    "build_command": {
-      "value": null,
-      "source": "pyproject.toml",
-      "status": "UNRESOLVED",
-      "needed_by": 15
-    },
-    "installer": {
-      "value": null,
-      "source": "repository tree",
-      "status": "UNRESOLVED",
-      "needed_by": 15
-    },
-    "known_theme_fixture": {
-      "value": "themes/default",
-      "source": "themes/default/theme.toml and themes/default/colors.toml",
-      "status": "VERIFIED_EXISTS",
-      "acceptance_suitability": "VERIFY_PER_SESSION"
-    },
-    "ownership_policy": {
-      "value": "defined inline in this manifest",
-      "source": "user decision recorded in control-plane manifest",
-      "status": "RESOLVED"
-    },
-    "opencode_integration": {
-      "value": null,
-      "source": "repository tree",
-      "status": "UNRESOLVED",
-      "needed_by": 17
-    }
+    "repository_layout": { "source": "repository tree", "status": "VERIFIED" },
+    "control_plane_authority": { "source": "raw/ execution control files", "status": "VERIFIED" },
+    "current_baseline": { "value": "Session 14 completed", "source": "current control-plane manifest", "status": "VERIFIED" },
+    "cli_entry_point": { "value": "core.cli:main", "source": "pyproject.toml", "status": "VERIFIED" },
+    "canonical_executable": { "value": "omni", "source": "pyproject.toml", "status": "VERIFIED" },
+    "alias_executable": { "value": "omni-theme", "source": "pyproject.toml", "status": "VERIFIED" },
+    "test_command": { "value": "pytest -q", "source": "project convention", "status": "VERIFIED" },
+    "build_command": { "value": "none", "decision": "Pure-Python project; pip install . needs no build step.", "source": "user decision recorded for Session 15", "status": "RESOLVED" },
+    "installer": { "value": "install.sh", "decision": "Checkout or managed clone -> dedicated venv -> pip install . -> ~/.local/bin shim. No sudo, no system Python mutation. Isolated venv install verified working in Session 9.", "source": "user decision recorded for Session 15", "status": "RESOLVED" },
+    "ci_provider": { "value": "GitHub Actions", "decision": "install-smoke-test workflow using an archlinux container; installs the commit under test via OMNI_SOURCE_DIR.", "source": "user decision recorded for Session 15", "status": "RESOLVED" },
+    "known_theme_fixture": { "value": "themes/default", "source": "themes/default/theme.toml and themes/default/colors.toml", "status": "VERIFIED_EXISTS", "acceptance_suitability": "VERIFY_PER_SESSION" },
+    "ownership_policy": { "value": "defined inline in this manifest", "source": "user decision recorded in control-plane manifest", "status": "RESOLVED" },
+    "opencode_integration": { "value": null, "source": "repository tree", "status": "UNRESOLVED", "needed_by": 17 }
   },
   "session_dependencies": {
-    "8": {
-      "hard": [
-        7
-      ],
-      "information": [
-        "filesystem",
-        "validation",
-        "state"
-      ],
-      "verification": [
-        7
-      ]
-    },
-    "9": {
-      "hard": [
-        8
-      ],
-      "information": [
-        "pyproject",
-        "README"
-      ],
-      "verification": [
-        8
-      ]
-    },
-    "10": {
-      "hard": [
-        9
-      ],
-      "information": [
-        "adapter_contract",
-        "targets"
-      ],
-      "verification": [
-        8,
-        9
-      ]
-    },
-    "11": {
-      "hard": [
-        10
-      ],
-      "information": [
-        "kde_adapter",
-        "gtk_adapter"
-      ],
-      "verification": [
-        8,
-        10
-      ]
-    },
-    "12": {
-      "hard": [
-        11
-      ],
-      "information": [
-        "filesystem",
-        "validation"
-      ],
-      "verification": [
-        8,
-        11
-      ]
-    },
-    "13": {
-      "hard": [
-        12
-      ],
-      "information": [
-        "kde_config"
-      ],
-      "verification": [
-        8,
-        12
-      ]
-    },
-    "14": {
-      "hard": [
-        13
-      ],
-      "information": [
-        "cli"
-      ],
-      "verification": [
-        7,
-        13
-      ]
-    },
-    "15": {
-      "hard": [
-        14
-      ],
-      "information": [
-        "pyproject"
-      ],
-      "verification": [
-        14
-      ]
-    },
-    "16": {
-      "hard": [
-        15
-      ],
-      "information": [
-        "optional_kwin_scope"
-      ],
-      "verification": [
-        15
-      ]
-    },
-    "17": {
-      "hard": [
-        16
-      ],
-      "information": [
-        "opencode_manifest"
-      ],
-      "verification": [
-        14,
-        16
-      ]
-    },
-    "18": {
-      "hard": [
-        17
-      ],
-      "information": [
-        "all_previous_sessions"
-      ],
-      "verification": [
-        8,
-        9,
-        10,
-        11,
-        12,
-        13,
-        14,
-        15,
-        16,
-        17
-      ]
-    }
+    "8": { "hard": [7], "information": ["filesystem", "validation", "state"], "verification": [7] },
+    "9": { "hard": [8], "information": ["pyproject", "README"], "verification": [8] },
+    "10": { "hard": [9], "information": ["adapter_contract", "targets"], "verification": [8, 9] },
+    "11": { "hard": [10], "information": ["kde_adapter", "gtk_adapter"], "verification": [8, 10] },
+    "12": { "hard": [11], "information": ["filesystem", "validation"], "verification": [8, 11] },
+    "13": { "hard": [12], "information": ["kde_config"], "verification": [8, 12] },
+    "14": { "hard": [13], "information": ["cli"], "verification": [7, 13] },
+    "15": { "hard": [14], "information": ["pyproject"], "verification": [14] },
+    "16": { "hard": [15], "information": ["optional_kwin_scope"], "verification": [15] },
+    "17": { "hard": [16], "information": ["opencode_manifest"], "verification": [14, 16] },
+    "18": { "hard": [17], "information": ["all_previous_sessions"], "verification": [8, 9, 10, 11, 12, 13, 14, 15, 16, 17] }
   },
   "completion_rule": "Do not start a later session while the selected session is blocked.",
   "global_execution_invariant": "Unknown required fact means BLOCKED; agents must not invent commands, paths, schemas, symbols, dependencies, platform scope, parser choices, or ownership policy.",
-  "notes": "Session 8 previously blocked on two unspecified facts: the approved roots and the ownership policy. Both are now specified in this manifest (session_8.approved_roots and ownership_policy). The remaining UNRESOLVED items (build_command, installer, opencode_integration) belong to Sessions 15 and 17 and do not block Session 8."
+  "notes": "Sessions 8-14 are COMPLETED with verification records above. Session 15's install facts (installer, build_command, ci_provider) are RESOLVED user decisions recorded in source_evidence and session_15.resolved_facts; do not reopen them. The only remaining UNRESOLVED item is opencode_integration (needed_by Session 17). Forward note: MUTATING_COMMANDS in core/cli.py is the only hand-maintained CLI metadata; any future session adding a mutating command must register it there - Session 18's audit should verify this."
 }
