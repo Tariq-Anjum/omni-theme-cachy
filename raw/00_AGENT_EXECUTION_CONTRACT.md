@@ -1,4 +1,4 @@
-# Omni Theme Cachy — Agent Execution Contract
+        # Omni Theme Cachy — Agent Execution Contract
 
 This contract is shared by Sessions 8–18. Read it before the selected session file.
 
@@ -71,6 +71,9 @@ Do not reinterpret this project as a `src/`-layout repository.
 ## Required Discovery
 
 Before editing, run only the minimum discovery needed:
+
+## Stop Condition
+- A command would modify the real user's desktop or protected system paths, unless the selected session explicitly authorizes real-desktop verification (e.g., theme apply immediately followed by rollback).
 
 ```bash
 pwd
