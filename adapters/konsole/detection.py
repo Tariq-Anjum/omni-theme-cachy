@@ -21,28 +21,13 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable
 
+from core.kde_config import parse_ini
+
 __all__ = ["KonsoleEnvironment", "detect_konsole", "parse_ini"]
 
 PROFILES_DIRNAME = "konsole"
 KONSOLERC = "konsolerc"
 DEFAULT_PROFILE_KEY = ("Desktop Entry", "DefaultProfile")
-
-
-def parse_ini(text: str) -> dict[tuple[str, str], str]:
-    """Parse a KConfig-style INI into ``((group, key), value)`` pairs."""
-    result: dict[tuple[str, str], str] = {}
-    group = ""
-    for line in text.splitlines():
-        stripped = line.strip()
-        if not stripped or stripped.startswith("#"):
-            continue
-        if stripped.startswith("[") and stripped.endswith("]"):
-            group = stripped[1:-1]
-            continue
-        if "=" in stripped and group:
-            key, _, value = stripped.partition("=")
-            result[(group, key.strip())] = value.strip()
-    return result
 
 
 @dataclass(frozen=True)

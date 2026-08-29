@@ -9,8 +9,11 @@ Ownership boundary
 * **Owned** (generated artifact, safe to overwrite):
   ``~/.local/share/konsole/OmniTheme.colorscheme``.
 * **User state** (modified surgically, journalled for exact rollback):
-  the default profile file's ``[Appearance] ColorScheme=`` key. Every
-  other byte and key of the profile is preserved verbatim; the previous
+  the default profile file's ``[Appearance] ColorScheme=`` key. The
+  edit is performed by the central, section-safe primitives in
+  :mod:`core.kde_config` (byte-preserving outside the managed key,
+  duplicate-section-safe, ``[$e]``-style suffixes survive); every other
+  byte and key of the profile is preserved verbatim. The previous
   value (or "key absent") plus a snapshot of prior bytes are recorded
   in ``<state>/adapters/konsole.json`` before touching anything.
 
@@ -22,13 +25,13 @@ profile to edit — unsupported must not masquerade as failure.
 from __future__ import annotations
 
 import json
-import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
 from core.adapters import AdapterCapability, AdapterResult
 from core.errors import AdapterError
 from core.filesystem import atomic_write_text
+from core import kde_config
 
 from adapters import support as adapter_support
 from adapters.konsole import colorscheme as kc
@@ -37,8 +40,6 @@ from adapters.konsole.detection import KonsoleEnvironment, detect_konsole
 __all__ = ["KonsoleAdapter", "KonsolePlan", "Journal", "journal_path"]
 
 JOURNAL_FILE = "konsole.json"
-
-_APPEARANCE_GROUP = re.compile(r"^(\[Appearance\][^\n]*\n)", re.MULTILINE)
 
 
 def journal_path(state_root: str | Path) -> Path:
@@ -331,13 +332,13 @@ class KonsoleAdapter:
 
 
 # ---------------------------------------------------------------------------
-# profile INI surgery (byte-preserving outside the one key)
+# profile INI surgery — delegated to the central, tested primitives in
+# core.kde_config: section-safe, byte-preserving outside the managed key,
+# ``[$e]``-style key suffixes survive.
 # ---------------------------------------------------------------------------
 
 def parse_profile_entries(text: str) -> dict[tuple[str, str], str]:
-    from adapters.konsole.detection import parse_ini
-
-    return parse_ini(text)
+    return kde_config.parse_ini(text)
 
 
 def _set_profile_key(text: str, value: str) -> tuple[str, str | None, bool]:
@@ -345,43 +346,15 @@ def _set_profile_key(text: str, value: str) -> tuple[str, str | None, bool]:
 
     Returns ``(new_text, previous_value_or_None, key_existed)``.
     """
-    entries = parse_profile_entries(text)
-    previous = entries.get(("Appearance", "ColorScheme"))
-
-    group_match = _APPEARANCE_GROUP.search(text)
-    line_re = re.compile(r"^(ColorScheme\s*=.*)$", re.MULTILINE)
-    if group_match:
-        start = group_match.end()
-        next_group = re.search(r"^\[", text[start:], re.MULTILINE)
-        end = start + (next_group.start() if next_group else len(text[start:]))
-        block = text[start:end]
-        if line_re.search(block):
-            new_block = line_re.sub(f"ColorScheme={value}", block, count=1)
-            return text[:start] + new_block + text[end:], previous, True
-        stripped_block = block.rstrip("\n")
-        new_block = (
-            (stripped_block + "\n" if stripped_block else "") + f"ColorScheme={value}\n"
-        )
-        return text[:start] + new_block + text[end:], previous, False
-
-    # No [Appearance] group yet: append it at the end of the file.
-    prefix = "" if text.endswith("\n") or not text else "\n"
-    return f"{text}{prefix}[Appearance]\nColorScheme={value}\n", previous, False
+    return kde_config.set_ini_key(text, "Appearance", "ColorScheme", value)
 
 
 def _set_profile_key_value(text: str, value: str) -> str:
-    new_text, _, _ = _set_profile_key(text, value)
+    new_text, _, _ = kde_config.set_ini_key(text, "Appearance", "ColorScheme", value)
     return new_text
 
 
 def _unset_profile_key(text: str) -> str:
-    """Remove the ColorScheme line inside [Appearance]; keep other keys."""
-    group_match = _APPEARANCE_GROUP.search(text)
-    if not group_match:
-        return text
-    start = group_match.end()
-    next_group = re.search(r"^\[", text[start:], re.MULTILINE)
-    end = start + (next_group.start() if next_group else len(text[start:]))
-    block = text[start:end]
-    cleaned = re.sub(r"^ColorScheme\s*=.*\n?", "", block, flags=re.MULTILINE)
-    return text[:start] + cleaned + text[end:]
+    """Remove every ``ColorScheme`` line (incl. suffixed variants) in
+    ``[Appearance]``; keep the header and all other keys."""
+    return kde_config.remove_ini_key(text, "Appearance", "ColorScheme")

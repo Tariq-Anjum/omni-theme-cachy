@@ -1,14 +1,13 @@
 {
-  "status": "SESSION_13_READY",
+  "status": "SESSION_14_READY",
   "project": "omni-theme-cachy",
   "repository": "Tariq-Anjum/omni-theme-cachy",
   "branch": "main",
-  "current_baseline": "Session 12 completed",
+  "current_baseline": "Session 13 completed",
   "control_plane_authority": "raw/ manifests and session records are authoritative for execution state; README is descriptive documentation and must not override the control plane",
   "stop_rule": "Read each control-plane file exactly once. If any file's output appears truncated, empty, or incomplete, do NOT re-read it; proceed with what you have, or report BLOCKED naming the exact problem. Never read the same control-plane file twice in one session.",
   "failure_rule": "If a required fact is unspecified or sources conflict, output Status: BLOCKED with the exact unresolved fact and stop. Do not invent a workaround.",
   "next_sessions": [
-    13,
     14,
     15,
     16,
@@ -161,6 +160,15 @@
       "audit": "scripts/audit_write_paths.py (AST reviewer aid, excludes itself) run clean: all candidate sites accounted for in the reviewed write-site inventory table"
     },
     "outcome": "Session 8's central policy verified independently and held: approved_roots/validate_write_target/PathPolicyError/atomic-write enforcement confirmed in code. Gaps found and closed centrally: (1) validate→replace TOCTOU window — atomic_write re-runs validate_write_target immediately before os.replace, so a component that becomes a symlink mid-write is rejected, never followed; (2) non-atomic shutil.copyfile at snapshot_file, restore_snapshot, and wallpaper ensure_cached replaced by new central atomic_copy (validated, atomic, preserves existing mode; failed/rejected copies never truncate the destination). restore_snapshot now reports policy rejections as (False, warning) per its contract instead of raising. Write-site review table (file | operation | target source | expected root | guard | ownership | test) added to docs/architecture/OWNERSHIP_AND_SECURITY.md; scripts/generate_default_wallpaper.py documented as dev-asset tooling; plasma-apply-* documented as native operations with their own contract. Every external write is centrally guarded; every other site is inside controlled engine-private staging/state directories or explicitly documented."
+  },
+  "session_13": {
+    "status": "COMPLETED",
+    "verification": {
+      "tests": "745 passed, 1 skipped (root-skip by design); git diff --check clean; compileall core+adapters+hooks+scripts clean",
+      "new_tests": "tests/unit/test_kde_config.py (36 tests: parse last-wins, suffix variants distinct, in-place replace, insertion before next header, append-at-end, empty files, idempotency, preexisting duplicate sections, [$e]/[$i]/locale suffix survival, set-back rollback restores original bytes, remove keeps header, format stability) and tests/unit/test_kwin_config.py (kwinrc write-scope guards over core/adapters/hooks/scripts sources and templates/targets.toml)",
+      "audit": "Step 1 classification over core/adapters/hooks: kdeglobals never written by Omni (KDE's own plasma-apply-colorscheme writes it; kreadconfig6 read-back kept native); kwinrc and plasmarc have zero references in code; konsolerc is read-only (parsed in detection); the only raw INI mutation site was the Konsole profile editor"
+    },
+    "outcome": "core/kde_config.py added as the single home for KDE/KConfig INI operations: parse_ini (verbatim keys, KConfig last-wins, suffixed variants distinct), set_ini_key (byte-precise; never creates a duplicate section; rewrites the winning occurrence in place preserving any [$e]-style suffix; appends into the last existing section block; new group only when the section is missing), remove_ini_key (every variant of the managed key, header preserved). configparser deliberately not used anywhere (lowercases keys, rejects duplicate sections, re-serialises whole files). Konsole profile surgery in adapters/konsole/adapter.py now delegates to it (regex surgery removed); adapters/konsole/detection.py parse_ini and adapters/gtk/sync.py parse_kdeglobals delegate to the central parser. No KWin code exists, so no set_kwin_setting was created; kwinrc/plasmarc stay out of scope, pinned by guard tests. kwriteconfig6 is installed on the dev machine but is NOT used for the profile: KConfig re-serialisation cannot guarantee the documented byte-preservation contract of the profile edit (snapshot+key journal provides exact rollback); mechanism choice per Step 2 order = dedicated format-aware editor. All resulting writes still route through filesystem.atomic_write_text (validated atomic path). Docs: session 13 classification added to docs/architecture/OWNERSHIP_AND_SECURITY.md."
   },
   "integration": {
     "opencode_files": [],

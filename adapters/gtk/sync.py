@@ -19,6 +19,7 @@ import re
 import time
 
 from core.color import rgb_to_hex
+from core import kde_config
 
 from adapters.gtk.detection import GtkEnvironment
 
@@ -50,19 +51,7 @@ _DEFINE_RE = re.compile(
 
 def parse_kdeglobals(text: str) -> dict[tuple[str, str], str]:
     """Parse KConfig INI into ``((section, key), value)`` map."""
-    result: dict[tuple[str, str], str] = {}
-    section = ""
-    for line in text.splitlines():
-        stripped = line.strip()
-        if not stripped or stripped.startswith("#"):
-            continue
-        if stripped.startswith("[") and stripped.endswith("]"):
-            section = stripped[1:-1]
-            continue
-        if "=" in stripped:
-            key, _, value = stripped.partition("=")
-            result[(section, key.strip())] = value.strip()
-    return result
+    return kde_config.parse_ini(text)
 
 
 def parse_colors_css(text: str) -> dict[str, str]:

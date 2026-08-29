@@ -12,17 +12,24 @@ user overrides, rollback, and a security model for third-party themes.
 
 ## Status
 
-**Session 12 completed** — measured write-path security coverage: the
-central path policy (`approved_roots`, `validate_write_target`,
-`PathPolicyError`) verified independently across every write site,
-symlink-safe atomic writes hardened against validation→replacement races
-(`PathPolicyError` on mid-write symlink swaps, never followed), file
-copies routed through a new atomic, policy-validated `atomic_copy`
-(backup snapshots, restores, wallpaper cache), a full write-site review
+**Session 13 completed** — KDE INI configuration writes are now section-safe:
+a central `core/kde_config.py` owns all KConfig-style parsing and editing
+(verbatim keys, last-wins, no duplicate sections, `[$e]`-style key suffixes
+preserved, byte-precise edits), the Konsole profile surgery and the
+`konsolerc`/`kdeglobals` parsers delegate to it, `configparser` is used
+nowhere, native KDE tooling (`plasma-apply-colorscheme`, `kreadconfig6`)
+remains the mechanism for kdeglobals, and `kwinrc`/`plasmarc` are pinned as
+never-touched by guard tests
+(authoritative execution state: `raw/00_PROJECT_MANIFEST.json`).
+Prior baselines: session 12 write-path security coverage — central path
+policy (`approved_roots`, `validate_write_target`, `PathPolicyError`)
+verified independently across every write site, symlink-safe atomic writes
+hardened against validation→replacement races (`PathPolicyError` on
+mid-write symlink swaps, never followed), file copies routed through a
+central atomic, policy-validated `atomic_copy`, a full write-site review
 table in `docs/architecture/OWNERSHIP_AND_SECURITY.md`, an AST write-site
 audit script (`scripts/audit_write_paths.py`), and symlink/TOCTOU test
-coverage in `tests/security/`
-(authoritative execution state: `raw/00_PROJECT_MANIFEST.json`).
+coverage in `tests/security/`.
 Core engine, adapters, CLI, security layer and docs are in place;
 documented commands are verified against the implementation, including
 live KDE Plasma 6 apply→rollback runs.

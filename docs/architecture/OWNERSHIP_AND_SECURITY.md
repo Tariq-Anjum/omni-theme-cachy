@@ -68,6 +68,38 @@ controlled CLI failure — no traceback for expected errors.
   primitive instead of raw `shutil.copyfile` — a rejected or failed copy
   can never truncate the destination.
 
+### Session 13 hardening: KDE INI writes are section-safe
+
+KConfig files are not generic INI: keys carry bracket suffixes
+(`key[$e]`, `key[$i]`, locale tags), the same group may appear more than
+once (later assignments win), and formatting is user-visible state.
+`configparser` is therefore **not used anywhere**: it lowercases keys,
+rejects duplicate sections and would re-serialise whole files.
+
+* **`core/kde_config.py`** is the single home for KDE INI operations:
+  `parse_ini` (verbatim keys, last-wins, suffix variants distinct),
+  `set_ini_key` (byte-precise; never creates a duplicate section;
+  rewrites the winning occurrence in place, preserving any key suffix;
+  appends into the last existing section block or at end-of-file) and
+  `remove_ini_key` (removes every variant of the managed key, keeps the
+  header). Konsole profile surgery, `konsolerc` detection parsing and
+  the gtk sync `kdeglobals` parser all delegate to it.
+* **Mechanism per KDE INI file** (audited in session 13):
+  * `kdeglobals` — never written by Omni; written by KDE's own
+    `plasma-apply-colorscheme` and read back via `kreadconfig6` (native
+    tooling kept);
+  * `kwinrc`, `plasmarc` — never touched by any code path (pinned by
+    `tests/unit/test_kwin_config.py`);
+  * `konsolerc` — read-only (detection parses it; never written);
+  * Konsole `*.profile` — value-scoped edit of `[Appearance]
+    ColorScheme=` via `core/kde_config.set_ini_key`; a byte snapshot in
+    the konsole journal provides exact rollback;
+  * `OmniTheme.colors` / `OmniTheme.colorscheme` — Omni-owned generated
+    artifacts written whole via the validated atomic write path.
+* Every resulting write still goes through `atomic_write_text` — the
+  central `kde_config` functions only transform text; persistence and
+  policy enforcement remain with `core/filesystem.py`.
+
 ## Write-site inventory (Session 12)
 
 Every filesystem write site in `core/`, `adapters/`, `hooks/` and
@@ -91,7 +123,7 @@ proves nothing by itself); this table is the reviewed result.
 | `adapters/kde/wallpaper.py` `ensure_cached` | `atomic_copy` → `<state>/adapters/wallpaper-cache/` | theme wallpaper (format-sniffed first) | state root | validator via `atomic_copy` | engine-owned cache | `test_write_path_coverage.py` |
 | adapter journals (`kde.json`, `vscode.json`, `konsole.json`, `gtk.json`) | `atomic_write_text` | engine state root | `$XDG_STATE_HOME` | validator | engine-owned | `test_write_path_coverage.py` |
 | `adapters/vscode` apply/rollback | `atomic_write_text` | discovered `<config>/Code*/User/settings.json` | `$XDG_CONFIG_HOME` | validator | key-scoped: only managed keys; rest byte-preserved | `test_write_path_coverage.py` + vscode unit tests |
-| `adapters/konsole` apply/rollback | `atomic_write_text` | scheme + default profile under `$XDG_DATA_HOME/konsole` | `$XDG_DATA_HOME` | validator + `assert_within` traversal guard | value-scoped profile key; scheme fully owned | konsole unit tests |
+| `adapters/konsole` apply/rollback | `atomic_write_text` | scheme + default profile under `$XDG_DATA_HOME/konsole` | `$XDG_DATA_HOME` | validator + `assert_within` traversal guard | value-scoped profile key edited via `core/kde_config` (section-safe, suffix-preserving); scheme fully owned | konsole unit tests + `test_kde_config.py` |
 | `adapters/gtk/direct.py` apply | `atomic_write_text` | `~/.config/gtk-{3,4}.0/gtk.css` | `$XDG_CONFIG_HOME` | validator + marker-owned block; opt-in only | marker-scoped block | gtk unit tests |
 | KDE `OmniTheme.colors` | `atomic_write` (core-managed target) | declared in `templates/targets.toml` | `$XDG_DATA_HOME/color-schemes` | validator + managed-target conflict gate | Omni-owned generated artifact | KDE adapter tests |
 | `scripts/generate_default_wallpaper.py` | `open("wb")` into `themes/default/wallpapers/` | repo asset tree | repository checkout (dev tooling, never runtime, never user config) | documented dev-asset exception | repo asset | `audit_write_paths.py` lists it for review |
