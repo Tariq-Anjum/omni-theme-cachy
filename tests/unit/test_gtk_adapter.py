@@ -123,7 +123,9 @@ class TestKdeSyncStrategy:
         return cfg
 
     def _kde_sync_adapter(self, cfg: Path) -> GtkAdapter:
-        return _adapter(cfg, kcmshell6=KCM)
+        # propagation_wait=0: sandbox has no kde-gtk-config daemon, so
+        # no propagation window exists to wait out.
+        return _adapter(cfg, kcmshell6=KCM, propagation_wait=0)
 
     def test_plan_selects_kde_sync_mode(self, synced_config, make_theme,
                                         context_factory):
@@ -309,6 +311,63 @@ class TestDirectFallback:
         theme = load_theme(make_theme())
         plan = _adapter(cfg, allow_direct=True).plan(theme, context_factory(theme=theme))
         assert any("libadwaita" in w or "GTK4" in w for w in plan.warnings)
+
+
+class TestPropagationWindow:
+    """kde-gtk-config rewrites colors.css *after* kdeglobals (observed
+    ~0.2s behind on live Plasma 6.7); verify must poll inside the
+    window instead of racing the daemon and failing a healthy sync."""
+
+    @pytest.fixture
+    def synced_config(self, tmp_path):
+        cfg = tmp_path / "cfg"
+        _gtk_env(cfg, settings="[Settings]\ngtk-theme-name=breeze\n")
+        (cfg / "kdeglobals").write_text(
+            "[Colors:Window]\nBackgroundNormal=20,22,28\nForegroundNormal=214,218,226\n"
+            "[Colors:View]\nBackgroundNormal=20,22,28\nForegroundNormal=214,218,226\n"
+            "[Colors:Selection]\nBackgroundNormal=69,144,175\nForegroundNormal=0,0,0\n"
+        )
+        (cfg / "gtk-3.0" / "colors.css").write_text(
+            "@define-color theme_bg_color_breeze #14161c;\n"
+            "@define-color theme_base_color_breeze #14161c;\n"
+            "@define-color theme_fg_color_breeze #d6dae2;\n"
+            "@define-color theme_text_color_breeze #d6dae2;\n"
+            "@define-color theme_selected_bg_color_breeze #4590af;\n"
+            "@define-color theme_selected_fg_color_breeze #000000;\n"
+        )
+        return cfg
+
+    def test_verify_polls_until_propagation_lands(self, synced_config,
+                                                  make_theme,
+                                                  context_factory):
+        css = synced_config / "gtk-3.0" / "colors.css"
+        stale = css.read_text().replace("#14161c", "#0a0a0a")
+        css.write_text(stale)  # daemon has not caught up yet
+
+        def daemon_lands(_delay: float) -> None:
+            css.write_text(stale.replace("#0a0a0a", "#14161c"))
+
+        theme = load_theme(make_theme())
+        adapter = _adapter(synced_config, kcmshell6=KCM,
+                           propagation_wait=2.0, sleep=daemon_lands)
+        plan = adapter.plan(theme, context_factory(theme=theme))
+        result = adapter.verify(plan, context_factory(theme=theme))
+        assert result.verified is True
+        assert not result.errors
+
+    def test_persistent_drift_after_budget_is_an_error(self, synced_config,
+                                                       make_theme,
+                                                       context_factory):
+        css = synced_config / "gtk-3.0" / "colors.css"
+        css.write_text(css.read_text().replace("#14161c", "#0a0a0a"))
+
+        theme = load_theme(make_theme())
+        adapter = _adapter(synced_config, kcmshell6=KCM,
+                           propagation_wait=0.0)
+        plan = adapter.plan(theme, context_factory(theme=theme))
+        result = adapter.verify(plan, context_factory(theme=theme))
+        assert result.verified is False
+        assert any("sync drift" in e for e in result.errors)
 
 
 class TestSyncHelpers:

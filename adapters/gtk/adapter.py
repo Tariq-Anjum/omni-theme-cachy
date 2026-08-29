@@ -17,6 +17,8 @@ Strategy ladder
 from __future__ import annotations
 
 import hashlib
+import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -26,6 +28,12 @@ from core.filesystem import sha256_file
 
 from adapters.gtk import direct as gtk_direct
 from adapters.gtk import sync as gtk_sync
+from adapters.gtk.capability import (
+    MODE_UNSUPPORTED,
+    detect_capability,
+    is_breeze,
+    mode_of,
+)
 from adapters.gtk.detection import (
     TOOL_KCMSHELL6,
     GtkEnvironment,
@@ -80,12 +88,20 @@ class GtkAdapter:
         *,
         allow_direct: bool = False,
         direct_force: bool = False,
+        propagation_wait: float | None = None,
+        sleep: Callable[[float], None] | None = None,
         env=None,
         which=None,
         config_home=None,
     ) -> None:
         self._allow_direct = allow_direct
         self._direct_force = direct_force
+        self._propagation_wait = (
+            gtk_sync.PROPAGATION_WAIT_S
+            if propagation_wait is None
+            else propagation_wait
+        )
+        self._sleep = sleep if sleep is not None else time.sleep
         self._kwargs: dict = {}
         if env is not None:
             self._kwargs["env"] = env
@@ -104,12 +120,12 @@ class GtkAdapter:
 
     def capability(self, context) -> AdapterCapability:
         env = self.environment()
-        if not env.has_gtk():
+        classified = detect_capability(env)
+        if mode_of(classified) == MODE_UNSUPPORTED:
             return AdapterCapability(
                 id=self.id,
                 supported=False,
-                reason="no GTK configuration found "
-                f"(no {', '.join(('gtk-3.0', 'gtk-4.0'))} under config home)",
+                reason=classified.reason,
             )
         return AdapterCapability(id=self.id, supported=True)
 
@@ -125,6 +141,14 @@ class GtkAdapter:
                 else "colorreload-gtk-module active"
             )
             details["theme_name"] = env.gtk_theme
+            if env.gtk_theme is not None and not is_breeze(env.gtk_theme):
+                warnings.append(
+                    f"user-configured GTK theme {env.gtk_theme!r} is not "
+                    "Breeze: kde-gtk-config propagates scheme colors via "
+                    "colors.css but does not switch the theme, so apps "
+                    "following it keep its own styling; Omni reports this "
+                    "boundary and does not override the user's choice"
+                )
             kg_text, css_text = gtk_sync.environment_sync_inputs(env)
             if css_text is None:
                 warnings.append(
@@ -230,7 +254,7 @@ class GtkAdapter:
         errors: list[str] = []
 
         if plan.mode == MODE_KDE_SYNC:
-            kg_text, css_text = gtk_sync.environment_sync_inputs(plan.environment)
+            _, css_text = gtk_sync.environment_sync_inputs(plan.environment)
             if css_text is None:
                 # Absence of the file is a warning-grade gap (first boot,
                 # module not yet triggered), not proof of broken sync.
@@ -241,7 +265,10 @@ class GtkAdapter:
                         "cannot verify kde-gtk sync: no colors.css present",
                     ),
                 )
-            problems = gtk_sync.verify_sync(kg_text or "", css_text)
+            problems = gtk_sync.await_sync(
+                plan.environment, budget=self._propagation_wait,
+                sleep=self._sleep,
+            )
             hard = [p for p in problems if "missing" not in p]
             soft = [p for p in problems if "missing" in p]
             errors.extend(hard)
@@ -261,7 +288,9 @@ class GtkAdapter:
                         f"{dplan.target} does not match planned content "
                         "(modified after write?)"
                     )
-            return self._result(applied=True, verified=not errors)
+            return self._result(
+                applied=True, verified=not errors, errors=errors
+            )
 
         return self._result(applied=True, verified=True)
 

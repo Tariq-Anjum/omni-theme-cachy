@@ -22,6 +22,14 @@ from adapters.gtk.adapter import (
     GtkAdapter,
     GtkPlan,
 )
+from adapters.gtk.capability import (
+    MODE_KDE_NATIVE_SYNC,
+    MODE_UNSUPPORTED,
+    GTKCapability,
+    detect_capability,
+    doctor_report,
+    mode_of,
+)
 from adapters.gtk.detection import GtkEnvironment, detect_gtk
 
 __all__ = [
@@ -29,7 +37,13 @@ __all__ = [
     "GtkPlan",
     "GtkEnvironment",
     "detect_gtk",
+    "GTKCapability",
+    "detect_capability",
+    "mode_of",
+    "doctor_report",
     "MODE_KDE_SYNC",
+    "MODE_KDE_NATIVE_SYNC",
     "MODE_DIRECT",
     "MODE_OBSERVE",
+    "MODE_UNSUPPORTED",
 ]

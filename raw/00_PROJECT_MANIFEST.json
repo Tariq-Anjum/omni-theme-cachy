@@ -1,14 +1,13 @@
 {
-  "status": "SESSION_11_READY",
+  "status": "SESSION_12_READY",
   "project": "omni-theme-cachy",
   "repository": "Tariq-Anjum/omni-theme-cachy",
   "branch": "main",
-  "current_baseline": "Session 10 completed",
+  "current_baseline": "Session 11 completed",
   "control_plane_authority": "raw/ manifests and session records are authoritative for execution state; README is descriptive documentation and must not override the control plane",
   "stop_rule": "Read each control-plane file exactly once. If any file's output appears truncated, empty, or incomplete, do NOT re-read it; proceed with what you have, or report BLOCKED naming the exact problem. Never read the same control-plane file twice in one session.",
   "failure_rule": "If a required fact is unspecified or sources conflict, output Status: BLOCKED with the exact unresolved fact and stop. Do not invent a workaround.",
   "next_sessions": [
-    11,
     12,
     13,
     14,
@@ -136,6 +135,25 @@
     },
     "outcome": "docs/architecture/DIVERGENCE_FROM_OMARCHY.md rewritten with verified provenance and required sections (why Omarchy as research, borrowed, intentionally changed, why KDE needs adapters, why shell.json is not reproduced, why surfaces.toml remains, explicit out-of-scope). surfaces.toml documented as the adapter-neutral semantic surface model, distinct from Omarchy shell.toml (Quickshell consumer contract) and shell.json (shell config/layout/plugin state); KDE Plasma native panel/widget/window config is a separate thing again. Session 9 'inspiration, not verified' labels upgraded to verified facts; accurate Session 9 content preserved."
   },
+  "session_11": {
+    "status": "COMPLETED",
+    "verification": {
+      "tests": "682 passed, 1 skipped (root-skip by design); git diff --check clean",
+      "new_tests": "tests/unit/test_gtk_capability.py, tests/unit/test_gtk_ownership.py, tests/integration/test_gtk_kde_sync.py (+ doctor gtk-shape test); all runnable without a desktop",
+      "live_sources": "real CachyOS Plasma 6.7.4 (Wayland) apply of themes/default executed twice (pre-fix and post-fix)",
+      "live_facts": [
+        "kdeglobals ColorScheme=OmniTheme observed via kreadconfig6 after apply; written by Plasma at 14:02:29.721",
+        "kde-gtk-config rewrote gtk-3.0/colors.css (and gtk-4.0/colors.css identically) at 14:02:29.933, i.e. ~0.2s AFTER kdeglobals, regardless of the configured non-Breeze GTK theme (WhiteSur-Light); gtk-theme-name left untouched by KDE",
+        "pre-fix verify raced the daemon: 5 'sync drift' warnings during apply while colors.css was still pre-propagation",
+        "post-fix verify (bounded propagation window, default 2s, injectable) applied the identical transition with zero drift warnings: VERIFIED",
+        "omni doctor --json gtk entry: {adapter: gtk, supported: true, mode: kde-native-sync, gtk3: true, gtk4: true, notes: [non-Breeze boundary], config_home, kde_gtk_sync_detected: true, breeze_gtk_detected: false}",
+        "stale untracked OmniTheme.colors from session 9 apply correctly refused apply until --force (engine conflict policy working on real system)"
+      ],
+      "restore": "pre-session desktop state restored byte-exact and verified by sha256: kdeglobals 9370194b, gtk-3.0/colors.css 6adfecc5, gtk-3.0/gtk.css 04f1957, gtk-3.0/settings.ini 2389967, gtk-4.0 gtk.css/settings.ini, konsole Bash.profile 2809e80b; wallpaper Image restored to journaled WhiteSur/#light via plasmashell scripting; VS Code workbench.colorCustomizations key removed (journal showed key absent pre-Omni); Omni runtime state reset to fresh skeleton (pre-session: no active generation). Residual: VS Code settings.json restored semantically, not byte-exact (only a hash was journaled; noted as a future snapshot improvement)",
+      "persistence": "scheme persistence is KDE-owned (kdeglobals + daemon re-propagation on every scheme change, observed live). Cross-login persistence NOT verified (logout would interrupt the agent session; logout safety rule) — recorded as 'not verified', no claim made"
+    },
+    "outcome": "GTK behavior is now explicitly classified per machine by adapters/gtk/capability.py (GTKCapability: gtk3/gtk4/kde_gtk_sync/breeze/direct_css_supported + documented reason; modes kde-native-sync | direct | unsupported). Default remains detect + verify + report: in kde-sync mode Omni writes nothing into the config home, ever. gtk-4.0-only without KDE sync is now honestly unsupported (libadwaita ignores user CSS). Non-Breeze GTK theme boundary is reported in plan warnings and doctor notes with the live-verified wording (colors propagate via colors.css; theme choice untouched). Direct fallback unchanged: opt-in, marker-owned gtk-3.0/gtk.css block, journal rollback, no read-only bits, conflicts refused. Fixed pre-existing direct-mode verify bug: hash mismatch produced verified=False with EMPTY errors (silent failure) — errors now surface. Doctor gtk entry follows the session-11 JSON shape. docs/user/GTK.md ownership map + live-verified facts added."
+  },
   "integration": {
     "opencode_files": [],
     "opencode_schema": null,
@@ -151,7 +169,7 @@
       "status": "VERIFIED"
     },
     "current_baseline": {
-      "value": "Session 7 completed",
+      "value": "Session 11 completed",
       "source": "current control-plane manifest",
       "status": "VERIFIED"
     },

@@ -387,6 +387,7 @@ def _cmd_doctor(args: argparse.Namespace) -> int:
     import os
     import platform
 
+    from adapters.gtk.capability import detect_capability, doctor_report
     from adapters.gtk.detection import detect_gtk
     from adapters.kde.detection import (
         TOOL_KREADCONFIG6,
@@ -460,11 +461,7 @@ def _cmd_doctor(args: argparse.Namespace) -> int:
             "plasma_version": plasma.plasmashell_version,
             "tools": dict(plasma.tools),
         },
-        "gtk": {
-            "installed": gtk.has_gtk(),
-            "kde_gtk_integration": gtk.kde_gtk_integration,
-            "config_home": str(gtk.config_home),
-        },
+        "gtk": doctor_report(gtk, detect_capability(gtk)),
         "konsole": {
             "installed": konsole.installed,
             "default_profile": konsole.default_profile,

@@ -45,3 +45,19 @@ def test_doctor_with_json_flag(capsys):
     assert "python_version" in data
     assert "missing_binaries" in data
     assert "runtime_directory" in data
+
+
+def test_doctor_gtk_entry_session11_shape(capsys):
+    """The gtk adapter entry reports the session-11 diagnostic shape."""
+    code = main(["doctor", "--json"])
+    assert code == 0
+    data = json.loads(capsys.readouterr().out)
+    gtk = data["adapter_capabilities"]["gtk"]
+    for key in ("adapter", "supported", "mode", "gtk3", "gtk4", "notes"):
+        assert key in gtk
+    assert gtk["adapter"] == "gtk"
+    assert gtk["mode"] in {"kde-native-sync", "direct", "unsupported"}
+    assert gtk["supported"] == (gtk["mode"] != "unsupported")
+    assert isinstance(gtk["notes"], list)
+    if gtk["mode"] == "unsupported":
+        assert gtk["notes"]  # documented reason present

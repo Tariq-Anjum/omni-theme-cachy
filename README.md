@@ -12,12 +12,15 @@ user overrides, rollback, and a security model for third-party themes.
 
 ## Status
 
-**Session 10 completed** — Omarchy Quattro reconciliation: divergence doc
-verified against live upstream sources, divergence audit script added
-(authoritative execution state: `raw/00_PROJECT_MANIFEST.json`). Core
-engine, adapters, CLI, security layer and docs are in place; documented
-commands are verified against the implementation, including a live
-KDE Plasma 6 apply→rollback run.
+**Session 11 completed** — GTK integration aligned with KDE's native
+synchronization chain: capability classification (`adapters/gtk/capability.py`),
+`omni doctor --json` GTK mode reporting (kde-native-sync / direct /
+unsupported), non-Breeze boundary reporting, and a propagation-window
+fix for kde-gtk-config's async `colors.css` rewrite (verified live on
+Plasma 6.7) (authoritative execution state: `raw/00_PROJECT_MANIFEST.json`).
+Core engine, adapters, CLI, security layer and docs are in place;
+documented commands are verified against the implementation, including
+live KDE Plasma 6 apply→rollback runs.
 
 ## Layout
 

@@ -16,12 +16,21 @@ Only confirmed pairs are used — nothing is guessed.
 from __future__ import annotations
 
 import re
+import time
 
 from core.color import rgb_to_hex
 
 from adapters.gtk.detection import GtkEnvironment
 
-__all__ = ["SYNC_PAIRS", "parse_kdeglobals", "parse_colors_css", "verify_sync"]
+__all__ = [
+    "SYNC_PAIRS",
+    "PROPAGATION_WAIT_S",
+    "PROPAGATION_POLL_S",
+    "parse_kdeglobals",
+    "parse_colors_css",
+    "verify_sync",
+    "await_sync",
+]
 
 #: kdeglobals ``(section, key)`` → colors.css ``@define-color`` name.
 SYNC_PAIRS: tuple[tuple[tuple[str, str], str], ...] = (
@@ -132,3 +141,33 @@ def environment_sync_inputs(env: GtkEnvironment) -> tuple[str | None, str | None
         except OSError:
             pass
     return kg_text, css_text
+
+
+#: kde-gtk-config rewrites colors.css *asynchronously* after kdeglobals
+#: changes (observed ~0.2s behind on live Plasma 6.7). Verification that
+#: runs immediately after a scheme application must allow the daemon
+#: this window before declaring drift, otherwise a healthy activation
+#: races the propagator and fails.
+PROPAGATION_WAIT_S = 2.0
+PROPAGATION_POLL_S = 0.1
+
+
+def await_sync(
+    env: GtkEnvironment,
+    *,
+    budget: float = PROPAGATION_WAIT_S,
+    sleep=time.sleep,
+) -> list[str]:
+    """Re-check propagation until it settles or *budget* expires.
+
+    Returns the final problem list (empty = verified). Purely
+    read-only: it re-reads kdeglobals and colors.css, never writes.
+    """
+    deadline = time.monotonic() + budget
+    kg_text, css_text = environment_sync_inputs(env)
+    problems = verify_sync(kg_text or "", css_text or "")
+    while problems and time.monotonic() < deadline:
+        sleep(PROPAGATION_POLL_S)
+        kg_text, css_text = environment_sync_inputs(env)
+        problems = verify_sync(kg_text or "", css_text or "")
+    return problems
