@@ -1,14 +1,13 @@
 {
-  "status": "SESSION_10_READY",
+  "status": "SESSION_11_READY",
   "project": "omni-theme-cachy",
   "repository": "Tariq-Anjum/omni-theme-cachy",
   "branch": "main",
-  "current_baseline": "Session 9 completed",
+  "current_baseline": "Session 10 completed",
   "control_plane_authority": "raw/ manifests and session records are authoritative for execution state; README is descriptive documentation and must not override the control plane",
   "stop_rule": "Read each control-plane file exactly once. If any file's output appears truncated, empty, or incomplete, do NOT re-read it; proceed with what you have, or report BLOCKED naming the exact problem. Never read the same control-plane file twice in one session.",
   "failure_rule": "If a required fact is unspecified or sources conflict, output Status: BLOCKED with the exact unresolved fact and stop. Do not invent a workaround.",
   "next_sessions": [
-    10,
     11,
     12,
     13,
@@ -127,6 +126,15 @@
       "kde_live": "real-desktop apply->rollback pair executed on CachyOS Plasma 6.7.4 (Wayland): apply default --yes -> VERIFIED, kdeglobals ColorScheme=OmniTheme observed via kreadconfig6; rollback --yes -> ROLLED_BACK, state consistent; pre-session desktop state (SweetAmbarBlue + WhiteSur/#light) restored afterwards"
     },
     "outcome": "Architecture docs (ARCHITECTURE, THEME_MODEL, ADAPTERS, ACTIVATION, OWNERSHIP_AND_SECURITY, DIVERGENCE_FROM_OMARCHY) and user docs (GETTING_STARTED, CREATING_THEMES, OVERRIDES, ROLLBACK, TROUBLESHOOTING, GTK, OPTIONAL_KWIN_SCRIPTS) written against actual code; CLI.md reconciled with the verified parser surface. Divergence doc grounded in docs/research/ only. Honest gaps recorded: third-party theme provenance filtering NOT implemented (no installer yet); no critical adapters registered; direct-GTK is adapter-construction option, not a CLI flag; KWin scripts not shipped and kwinrc permanently out of scope."
+  },
+  "session_10": {
+    "status": "COMPLETED",
+    "verification": {
+      "live_sources": "docs/theming.md and shell/README.md fetched live from basecamp/omarchy @ quattro (August 2026): confirmed first-party themes under themes/<name>/, user themes ~/.config/omarchy/themes/<name>/, staging ~/.local/state/omarchy/current/next-theme, user templates ~/.config/omarchy/themed/, built-in default/themed/*.tpl, semantic colors.toml, shell.toml surface/style roles, theme files beat generated template output, omarchy-shell is a Quickshell/QML system and shell.json owns layout/plugin state",
+      "audit": "scripts/audit_omarchy_divergence.py clean: no Quickshell/Hyprland/QML literals in core/, adapters/, hooks/, scripts/, templates/",
+      "tests": "647 passed, 1 skipped (unchanged from session 9 baseline)"
+    },
+    "outcome": "docs/architecture/DIVERGENCE_FROM_OMARCHY.md rewritten with verified provenance and required sections (why Omarchy as research, borrowed, intentionally changed, why KDE needs adapters, why shell.json is not reproduced, why surfaces.toml remains, explicit out-of-scope). surfaces.toml documented as the adapter-neutral semantic surface model, distinct from Omarchy shell.toml (Quickshell consumer contract) and shell.json (shell config/layout/plugin state); KDE Plasma native panel/widget/window config is a separate thing again. Session 9 'inspiration, not verified' labels upgraded to verified facts; accurate Session 9 content preserved."
   },
   "integration": {
     "opencode_files": [],

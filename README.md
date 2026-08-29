@@ -12,7 +12,8 @@ user overrides, rollback, and a security model for third-party themes.
 
 ## Status
 
-**Session 9 completed** — documentation, packaging and acceptance baseline
+**Session 10 completed** — Omarchy Quattro reconciliation: divergence doc
+verified against live upstream sources, divergence audit script added
 (authoritative execution state: `raw/00_PROJECT_MANIFEST.json`). Core
 engine, adapters, CLI, security layer and docs are in place; documented
 commands are verified against the implementation, including a live
