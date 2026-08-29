@@ -1,13 +1,13 @@
 {
-  "status": "SESSION_16_COMPLETED",
+  "status": "SESSION_17_COMPLETED",
   "project": "omni-theme-cachy",
   "repository": "Tariq-Anjum/omni-theme-cachy",
   "branch": "main",
-  "current_baseline": "Session 16 completed",
+  "current_baseline": "Session 17 completed",
   "control_plane_authority": "raw/ manifests and session records are authoritative for execution state; README is descriptive documentation and must not override the control plane",
   "stop_rule": "Read each control-plane file exactly once. If any file's output appears truncated, empty, or incomplete, do NOT re-read it; proceed with what you have, or report BLOCKED naming the exact problem. Never read the same control-plane file twice in one session.",
   "failure_rule": "If a required fact is unspecified or sources conflict, output Status: BLOCKED with the exact unresolved fact and stop. Do not invent a workaround.",
-  "next_sessions": [17, 18],
+  "next_sessions": [18],
   "primary_platform": "CachyOS with KDE Plasma 6",
   "source_directories": ["core", "adapters", "tests"],
   "project_directories": ["core", "adapters", "tests", "templates", "themes", "scripts", "hooks", "docs"],
@@ -184,9 +184,29 @@
     },
     "outcome": "docs/user/OPTIONAL_KWIN_SCRIPTS.md reconciled with session 9 content preserved and extended: explicit no-tiling/no-package-installation statements, window-behaviour note (BorderlessMaximizedWindows absent; future settings must be opt-in via core/kde_config.py, reversible, documented), community-scripts reference table with verified sources and explicit no-endorsement/no-security-review disclaimer. Session 16 scope-hygiene classification added to docs/architecture/OWNERSHIP_AND_SECURITY.md. Exit condition holds: normal theme apply cannot install packages, enable KWin scripts, change tiling behaviour, or replace KWin (no code path exists)."
   },
+  "session_17": {
+    "status": "COMPLETED",
+    "verification": {
+      "opencode_client": "opencode 1.18.23 installed; config schema fetched live (https://opencode.ai/config.json) and permission keys confirmed (read/edit/glob/grep/list/bash/task/external_directory/todowrite/question/webfetch/websearch/...); commands conventions confirmed against https://opencode.ai/docs/commands/: per-project markdown commands in .opencode/commands/ (not .opencode/command/), frontmatter {description, agent, optional model/subtask}, $ARGUMENTS placeholder; project config has highest precedence, granular bash glob rules supported",
+      "tests": "tests/test_opencode_integration.py (13 tests) passed; full suite re-run at session end; git diff --check clean",
+      "runtime_discovery": "not verified interactively - TUI discovery not exercised in this environment; file-structure and config-resolution verified via `opencode debug config`",
+      "custom_tools": "none created: the CLI surface is sufficient (Step 4 condition not met); .opencode/tools/ intentionally absent",
+      "repair": "parent-directory config /mnt/MD/Project/Theme/opencode.json (outside the repo) contained malformed JSONC (stray fragment on the model line) breaking `opencode debug config`; repaired minimally by removing the stray token, all other keys untouched"
+    },
+    "outcome": "opencode.json added with conservative permissions: read/glob/grep/list + webfetch/websearch allow; bash granular rules - all read-only omni commands (theme list/current/validate/preview, wallpaper list/current, status, doctor, version, commands) plus pytest/compileall/audit scripts/git status|diff|log allowed without prompting; everything else in bash asks; git push/tag ask; pip/npm install, sudo, curl, wget deny; edit asks. Five OpenCode commands in .opencode/commands/ (omni-check, omni-preview, omni-apply, omni-security, omni-release-check) wrap the omni CLI only; omni-apply requires a clean --dry-run before --yes. Mapping documented in docs/user/OPENCODE.md and referenced from AGENTS.md. No custom tools."
+  },
   "integration": {
-    "opencode_files": [],
-    "opencode_schema": null,
+    "opencode_files": [
+      "opencode.json",
+      ".opencode/commands/omni-check.md",
+      ".opencode/commands/omni-preview.md",
+      ".opencode/commands/omni-apply.md",
+      ".opencode/commands/omni-security.md",
+      ".opencode/commands/omni-release-check.md",
+      "docs/user/OPENCODE.md",
+      "tests/test_opencode_integration.py"
+    ],
+    "opencode_schema": "https://opencode.ai/config.json (verified against opencode 1.18.23; permission keys per installed schema; commands per https://opencode.ai/docs/commands/)",
     "commands_json": "omni commands --json (schema_version 1; entries {name, mutates, supports_yes, supports_json, supports_dry_run} derived from the live parser in core/cli.py; documented in docs/user/CLI.md)"
   },
   "source_evidence": {
@@ -202,7 +222,7 @@
     "ci_provider": { "value": "GitHub Actions", "decision": "install-smoke-test workflow using an archlinux container; installs the commit under test via OMNI_SOURCE_DIR.", "source": "user decision recorded for Session 15", "status": "RESOLVED" },
     "known_theme_fixture": { "value": "themes/default", "source": "themes/default/theme.toml and themes/default/colors.toml", "status": "VERIFIED_EXISTS", "acceptance_suitability": "VERIFY_PER_SESSION" },
     "ownership_policy": { "value": "defined inline in this manifest", "source": "user decision recorded in control-plane manifest", "status": "RESOLVED" },
-    "opencode_integration": { "value": null, "source": "repository tree", "status": "UNRESOLVED", "needed_by": 17 }
+    "opencode_integration": { "value": "resolved", "source": "Session 17", "status": "RESOLVED" }
   },
   "session_dependencies": {
     "8": { "hard": [7], "information": ["filesystem", "validation", "state"], "verification": [7] },
@@ -219,5 +239,5 @@
   },
   "completion_rule": "Do not start a later session while the selected session is blocked.",
   "global_execution_invariant": "Unknown required fact means BLOCKED; agents must not invent commands, paths, schemas, symbols, dependencies, platform scope, parser choices, or ownership policy.",
-  "notes": "Sessions 8-14 are COMPLETED with verification records above. Session 15's install facts (installer, build_command, ci_provider) are RESOLVED user decisions recorded in source_evidence and session_15.resolved_facts; do not reopen them. The only remaining UNRESOLVED item is opencode_integration (needed_by Session 17). Forward note: MUTATING_COMMANDS in core/cli.py is the only hand-maintained CLI metadata; any future session adding a mutating command must register it there - Session 18's audit should verify this."
+  "notes": "Sessions 8-14 are COMPLETED with verification records above. Session 15's install facts (installer, build_command, ci_provider) are RESOLVED user decisions recorded in source_evidence and session_15.resolved_facts; do not reopen them. Session 17's OpenCode integration is RESOLVED (see session_17 and integration.opencode_files); do not reopen. The only remaining UNRESOLVED item is none. Forward note: MUTATING_COMMANDS in core/cli.py is the only hand-maintained CLI metadata; any future session adding a mutating command must register it there and update opencode.json bash rules - Session 18's audit should verify this."
 }

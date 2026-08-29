@@ -12,7 +12,20 @@ user overrides, rollback, and a security model for third-party themes.
 
 ## Status
 
-**Session 16 completed** — KWin scope hygiene is verified and documented:
+**Session 17 completed** — OpenCode integration is in place so coding
+agents can drive the repository deterministically: `opencode.json`
+declares conservative permissions (read-only omni commands run without
+prompting, desktop mutation and `git push`/`git tag` require asking,
+package installs are denied), and five project commands in
+`.opencode/commands/` (`/omni-check`, `/omni-preview`, `/omni-apply`,
+`/omni-security`, `/omni-release-check`) wrap the Omni CLI as the source
+of truth — preview is read-only, apply always runs a dry-run first, and
+nothing is pushed automatically. The mapping from `omni commands --json`
+to the OpenCode command surface is documented in
+`docs/user/OPENCODE.md` and referenced from `AGENTS.md`. Verified
+against OpenCode 1.18.23 conventions. Findings recorded in
+`raw/00_PROJECT_MANIFEST.json`. Prior baseline: session 16 — KWin scope
+hygiene is verified and documented:
 a mechanical scan confirms no code path in `core/`, `adapters/`, `hooks/`
 or `scripts/` invokes a package manager (`pacman`/`yay`/`paru`/`dnf`/`apt`/
 `zypper`/`flatpak`/`snap`), no code references KWin or tiling at all, and

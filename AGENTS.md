@@ -20,3 +20,13 @@ Escalate only when evidence requires it.
   (see `.gitignore`).
 - Auth: GitHub CLI at `~/.local/bin/gh`, logged in as Tariq-Anjum; git HTTPS
   credentials handled via `gh auth setup-git`.
+
+## OpenCode integration
+
+- Project commands live in `.opencode/commands/` (`/omni-check`,
+  `/omni-preview`, `/omni-apply`, `/omni-security`, `/omni-release-check`).
+- Permission policy lives in `opencode.json`: read-only omni commands run
+  without prompting; desktop mutation and git push/tag require asking;
+  package installs are denied.
+- The mapping from `omni commands --json` to the OpenCode command surface is
+  documented in `docs/user/OPENCODE.md`. The Omni CLI is the source of truth.
