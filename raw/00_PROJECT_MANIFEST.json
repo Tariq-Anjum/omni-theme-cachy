@@ -1,13 +1,13 @@
 {
-  "status": "SESSION_15_COMPLETED",
+  "status": "SESSION_16_COMPLETED",
   "project": "omni-theme-cachy",
   "repository": "Tariq-Anjum/omni-theme-cachy",
   "branch": "main",
-  "current_baseline": "Session 15 completed",
+  "current_baseline": "Session 16 completed",
   "control_plane_authority": "raw/ manifests and session records are authoritative for execution state; README is descriptive documentation and must not override the control plane",
   "stop_rule": "Read each control-plane file exactly once. If any file's output appears truncated, empty, or incomplete, do NOT re-read it; proceed with what you have, or report BLOCKED naming the exact problem. Never read the same control-plane file twice in one session.",
   "failure_rule": "If a required fact is unspecified or sources conflict, output Status: BLOCKED with the exact unresolved fact and stop. Do not invent a workaround.",
-  "next_sessions": [16, 17, 18],
+  "next_sessions": [17, 18],
   "primary_platform": "CachyOS with KDE Plasma 6",
   "source_directories": ["core", "adapters", "tests"],
   "project_directories": ["core", "adapters", "tests", "templates", "themes", "scripts", "hooks", "docs"],
@@ -172,6 +172,18 @@
     },
     "outcome": "install.sh and .github/workflows/install-smoke-test.yml added; GETTING_STARTED.md and README.md updated. All three resolved facts implemented as recorded (installer, build_command none, GitHub Actions archlinux container). No dependencies added; no existing tests weakened. Theme discovery remains cwd-relative by design (documented, not redesigned)."
   },
+  "session_16": {
+    "status": "COMPLETED",
+    "verification": {
+      "tests": "756 passed, 1 skipped (root-skip by design; unchanged from session 15 baseline); git diff --check clean",
+      "package_scan": "rg over core/adapters/hooks/scripts (*.py) for pacman/yay/paru/dnf/apt/zypper/flatpak/snap install, os.system, os.popen, subprocess shell=True: zero matches. install.sh (scan-exempt, checked anyway) contains no package-manager calls; CI workflow pacman use is container provisioning, not engine code.",
+      "kwin_scan": "rg for kwin/tiling/krohnkite/kzones/polonium/plasmazones/BorderlessMaximizedWindows over core/adapters/hooks/scripts/docs: zero code references; all hits in docs classified as theme-related scope statements or research snapshots; no legacy or unintended references; nothing removed.",
+      "borderless": "BorderlessMaximizedWindows absent from code, templates and themes; no window-behaviour setting exists; future requirement (opt-in, via core/kde_config.py, reversible, documented) recorded in docs.",
+      "kwin_guards": "tests/unit/test_kwin_config.py session 13 guards re-verified (6 passed); no new KWin-touching code found, so no new guard tests added (would duplicate session 13).",
+      "web_verification": "Community script upstreams verified 2026-08: Krohnkite github.com/esjeon/krohnkite; Kzones github.com/gerritdevriese/kzones; Polonium github.com/zeroxoneafour/polonium (upstream announced project end Aug 2024); PlasmaZones github.com/fuddlesworth/PlasmaZones."
+    },
+    "outcome": "docs/user/OPTIONAL_KWIN_SCRIPTS.md reconciled with session 9 content preserved and extended: explicit no-tiling/no-package-installation statements, window-behaviour note (BorderlessMaximizedWindows absent; future settings must be opt-in via core/kde_config.py, reversible, documented), community-scripts reference table with verified sources and explicit no-endorsement/no-security-review disclaimer. Session 16 scope-hygiene classification added to docs/architecture/OWNERSHIP_AND_SECURITY.md. Exit condition holds: normal theme apply cannot install packages, enable KWin scripts, change tiling behaviour, or replace KWin (no code path exists)."
+  },
   "integration": {
     "opencode_files": [],
     "opencode_schema": null,
@@ -180,7 +192,7 @@
   "source_evidence": {
     "repository_layout": { "source": "repository tree", "status": "VERIFIED" },
     "control_plane_authority": { "source": "raw/ execution control files", "status": "VERIFIED" },
-    "current_baseline": { "value": "Session 14 completed", "source": "current control-plane manifest", "status": "VERIFIED" },
+    "current_baseline": { "value": "Session 16 completed", "source": "current control-plane manifest", "status": "VERIFIED" },
     "cli_entry_point": { "value": "core.cli:main", "source": "pyproject.toml", "status": "VERIFIED" },
     "canonical_executable": { "value": "omni", "source": "pyproject.toml", "status": "VERIFIED" },
     "alias_executable": { "value": "omni-theme", "source": "pyproject.toml", "status": "VERIFIED" },

@@ -12,7 +12,21 @@ user overrides, rollback, and a security model for third-party themes.
 
 ## Status
 
-**Session 15 completed** — installation is now a real end-user path:
+**Session 16 completed** — KWin scope hygiene is verified and documented:
+a mechanical scan confirms no code path in `core/`, `adapters/`, `hooks/`
+or `scripts/` invokes a package manager (`pacman`/`yay`/`paru`/`dnf`/`apt`/
+`zypper`/`flatpak`/`snap`), no code references KWin or tiling at all, and
+no `BorderlessMaximizedWindows` (or any window-behaviour setting) exists —
+so a normal `omni theme apply default --yes` cannot install packages,
+enable KWin scripts, change tiling behaviour, or replace KWin. The session
+13 `kwinrc` guard tests still pin the boundary, and
+`docs/user/OPTIONAL_KWIN_SCRIPTS.md` now names the out-of-scope community
+tiling scripts (Krohnkite, Kzones, Polonium, PlasmaZones) with
+verified upstream sources, explicitly without endorsement or security
+review. Findings recorded in
+`docs/architecture/OWNERSHIP_AND_SECURITY.md`
+(authoritative execution state: `raw/00_PROJECT_MANIFEST.json`).
+Prior baseline: session 15 — installation is now a real end-user path:
 `install.sh` clones (or fast-forwards) the repository into
 `~/.local/share/omni-theme-cachy`, installs it into a dedicated venv,
 and exposes `omni`/`omni-theme` via `~/.local/bin` shims — no `sudo`, no

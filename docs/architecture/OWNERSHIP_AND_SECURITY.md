@@ -100,6 +100,43 @@ rejects duplicate sections and would re-serialise whole files.
   central `kde_config` functions only transform text; persistence and
   policy enforcement remain with `core/filesystem.py`.
 
+### Session 16 hardening: scope hygiene (packages, KWin, window behaviour)
+
+Two mechanical scans over `core/`, `adapters/`, `hooks/`, `scripts/`
+re-verified the product boundary (session 16; findings below are the
+reviewed result):
+
+* **Package managers.** Pattern scan for `pacman -S`, `yay`, `paru`,
+  `dnf/apt/zypper install`, `flatpak/snap install`, `os.system`,
+  `os.popen` and `subprocess` with `shell=True`: **zero matches**. The
+  engine never installs packages, AUR helpers included.
+  `install.sh` (exempt from the code scan, checked anyway) contains no
+  package-manager calls — it only provisions a dedicated venv and
+  `pip install .` into it. The CI workflow installs `git python` via
+  pacman inside its own throwaway archlinux container; that is CI
+  environment provisioning, not engine code and not a runtime path.
+* **KWin / tiling references.** Scan for `kwin`, `tiling`, `krohnkite`,
+  `kzones`, `polonium`, `plasmazones`, `BorderlessMaximizedWindows`:
+  **zero matches in code** (`core/`, `adapters/`, `hooks/`,
+  `scripts/`). Every hit lives in `docs/` and classifies as:
+  * *theme-related scope statements* — this document, the user-facing
+    `OPTIONAL_KWIN_SCRIPTS.md`, `ADAPTERS.md` ("kwinrc and panels are
+    separate surfaces"), `DIVERGENCE_FROM_OMARCHY.md`;
+  * *research snapshots* — `docs/research/` notes describing what
+    Omarchy/KDE do (not what Omni does);
+  * *legacy/unintended*: none found. Nothing to remove; the session 13
+    guard tests (`tests/unit/test_kwin_config.py`) remain the pin and
+    were not duplicated or weakened.
+* **Window behaviour.** `BorderlessMaximizedWindows` (or any equivalent
+  maximized-window decoration toggle) does not exist in the code,
+  templates or themes. No opt-in surface is needed; if one is ever
+  added it must go through `core/kde_config.py`, be opt-in, reversible
+  and documented — see the user doc's "Window behaviour settings".
+
+Consequence for the activation flow: a normal `omni theme apply
+default --yes` cannot install packages, enable KWin scripts, change
+tiling behaviour, or replace KWin — there is no code path that could.
+
 ## Write-site inventory (Session 12)
 
 Every filesystem write site in `core/`, `adapters/`, `hooks/` and
