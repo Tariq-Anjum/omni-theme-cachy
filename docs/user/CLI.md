@@ -13,6 +13,7 @@ omni
 │   ├── list                                # read
 │   ├── current                             # read
 │   ├── apply <name> [--yes] [--dry-run] [--force]   # write
+│   ├── create --from-wallpaper <img> --name <n> [--apply --yes]   # write
 │   ├── validate <name> [--strict]          # read
 │   ├── preview <name>                      # read
 │   └── rollback [--yes]                    # write
@@ -34,7 +35,8 @@ directory; default `themes/` relative to the working directory),
 
 * **Read-only** commands: `theme list|current|validate|preview`,
   `status`, `doctor`, `version`, `wallpaper list|current`, `commands`.
-* **Write** commands: `theme apply`, `theme rollback`, `wallpaper set`.
+* **Write** commands: `theme apply`, `theme create`, `theme rollback`,
+  `wallpaper set`.
   Each requires confirmation on a TTY, or `--yes` when non-interactive
   (pipes, scripts, agents). Without `--yes` on a non-TTY stdin they
   refuse with exit code `2`.

@@ -359,18 +359,29 @@ def parse_border_width(value) -> BorderWidth:
 # ---------------------------------------------------------------------------
 
 
+#: Shell-chrome keyword values (consumed by the plasma-chrome adapter).
+SURFACE_OPACITY_WORDS = frozenset({"opaque", "translucent", "adaptive"})
+#: Keys that carry plain identifiers (e.g. a KWin decoration theme name).
+SURFACE_IDENTIFIER_KEYS = frozenset({"theme", "library"})
+
+
 def classify_surface_value(key: str, value) -> str:
     """Classify a surfaces.toml entry as a value kind.
 
     Returns one of ``"color"``, ``"gradient"``, ``"border-width"``,
-    ``"alpha"``, ``"number"`` — or raises SurfaceValueError when the
-    value matches no accepted form for its key.
+    ``"alpha"``, ``"number"``, ``"keyword"``, ``"identifier"`` — or
+    raises SurfaceValueError when the value matches no accepted form for
+    its key.
 
     Rules (mirroring Omarchy's surface language, documented in this
     module's docstring):
 
     * keys ending ``-width`` → border width (int or 1-4-int list);
     * keys ending ``-alpha`` → number in [0, 1];
+    * ``opacity`` → one of the :data:`SURFACE_OPACITY_WORDS` keywords,
+      or an int code 0/1/2 (plasma-chrome panel opacity);
+    * ``theme``/``library`` → non-empty identifier strings
+      (plasma-chrome KWin decoration selection);
     * strings starting ``#`` → single color;
     * other multi-token strings → gradient;
     * bare non-negative ints → generic dimensions/padding.
@@ -384,6 +395,26 @@ def classify_surface_value(key: str, value) -> str:
         if not 0.0 <= value <= 1.0:
             raise SurfaceValueError(f"{key!r} must be in [0, 1], got {value!r}")
         return "alpha"
+    if isinstance(key, str) and key == "opacity":
+        if isinstance(value, bool):
+            raise SurfaceValueError(f"{key!r}: booleans are not surface values")
+        if isinstance(value, int):
+            if value not in (0, 1, 2):
+                raise SurfaceValueError(
+                    f"{key!r}: int code must be 0 (opaque), 1 (translucent) "
+                    f"or 2 (adaptive), got {value!r}"
+                )
+            return "keyword"
+        if isinstance(value, str) and value.strip().lower() in SURFACE_OPACITY_WORDS:
+            return "keyword"
+        raise SurfaceValueError(
+            f"{key!r} must be one of {', '.join(sorted(SURFACE_OPACITY_WORDS))} "
+            f"(or 0/1/2), got {value!r}"
+        )
+    if isinstance(key, str) and key in SURFACE_IDENTIFIER_KEYS:
+        if isinstance(value, str) and value.strip():
+            return "identifier"
+        raise SurfaceValueError(f"{key!r} must be a non-empty string, got {value!r}")
     if isinstance(value, bool):
         raise SurfaceValueError(f"{key!r}: booleans are not surface values")
     if isinstance(value, int):

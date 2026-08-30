@@ -1,0 +1,14 @@
+[Unit]
+Description=Omni Wallpaper-Aware Auto-Theming Daemon
+After=graphical-session.target plasma-plasmashell.service
+Wants=graphical-session.target
+PartOf=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=%h/.local/share/omni-theme-cachy/gui/omni-wallpaper-daemon.py --interval 3 --auto-apply
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=graphical-session.target

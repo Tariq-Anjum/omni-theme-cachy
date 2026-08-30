@@ -371,6 +371,85 @@ def _cmd_theme_apply(args: argparse.Namespace) -> int:
     return _print_outcome(outcome, args.json)
 
 
+def _cmd_theme_create(args: argparse.Namespace) -> int:
+    """Generate a theme directory from a wallpaper's extracted palette."""
+    from core.theme_factory import create_theme_dir
+    from core.wallpaper_extractor import WallpaperColorExtractor
+
+    command = "theme.create"
+    engine = _build_engine(args)
+    wallpaper = Path(args.from_wallpaper).expanduser()
+
+    if not _confirm(
+        args, f"create theme {args.name!r} in {Path(args.root).resolve()}?"
+    ):
+        return ExitCode.USAGE
+
+    try:
+        colors = WallpaperColorExtractor(
+            n_colors=args.n_colors, sample_size=args.sample_size
+        ).extract(wallpaper)
+        theme_dir = create_theme_dir(
+            args.root,
+            name=args.name,
+            colors=colors,
+            mode=args.mode,
+            wallpaper=wallpaper,
+            force=args.force,
+        )
+    except ThemeError as exc:
+        if args.json:
+            print(json.dumps(_json_failure(command, str(exc)), indent=2))
+            return ExitCode.INTERNAL_ERROR
+        print(f"error: {exc}", file=sys.stderr)
+        return ExitCode.INTERNAL_ERROR
+
+    payload: dict = {
+        "schema_version": 1,
+        "command": command,
+        "ok": True,
+        "theme": {
+            "id": theme_dir.name,
+            "name": args.name,
+            "mode": args.mode,
+            "source": str(theme_dir),
+        },
+        "wallpaper": str(wallpaper),
+        "applied": False,
+    }
+
+    if args.apply:
+        try:
+            outcome = engine.apply(theme_dir.name, force=args.force)
+        except ThemeError as exc:
+            payload["ok"] = False
+            payload["errors"] = [f"theme created but apply failed: {exc}"]
+            if args.json:
+                print(json.dumps(payload, indent=2))
+                return ExitCode.ACTIVATION_FAILURE
+            print(f"error: theme created but apply failed: {exc}", file=sys.stderr)
+            return ExitCode.ACTIVATION_FAILURE
+        payload["applied"] = outcome.ok
+        payload["apply_status"] = outcome.status
+        if not outcome.ok:
+            payload["ok"] = False
+            payload["errors"] = list(outcome.errors)
+
+    if args.json:
+        print(json.dumps(payload, indent=2))
+    else:
+        print(f"created: {theme_dir}")
+        print(f"theme:   {args.name} ({theme_dir.name}, {args.mode})")
+        for role in ("background", "foreground", "accent"):
+            print(f"  {role:<11} {colors[role]}")
+        if args.apply:
+            print(f"applied: {'yes' if payload['applied'] else 'FAILED'}"
+                  + (f" ({payload.get('apply_status')})" if payload.get("apply_status") else ""))
+            for error in payload.get("errors", []):
+                print(f"error: {error}", file=sys.stderr)
+    return ExitCode.SUCCESS if payload["ok"] else ExitCode.ACTIVATION_FAILURE
+
+
 def _cmd_theme_current(args: argparse.Namespace) -> int:
     engine = _build_engine(args)
     current = engine.current_theme()
@@ -854,7 +933,9 @@ def _cmd_wallpaper_set(args: argparse.Namespace) -> int:
 # Leaf commands that write to the system. Every other leaf command is
 # read-only. Metadata for --yes/--json/--dry-run support is derived from
 # the live parser so this inventory cannot drift from the real surface.
-MUTATING_COMMANDS = frozenset({"theme.apply", "theme.rollback", "wallpaper.set"})
+MUTATING_COMMANDS = frozenset(
+    {"theme.apply", "theme.rollback", "wallpaper.set", "theme.create"}
+)
 
 
 def _iter_leaf_parsers(parser: argparse.ArgumentParser):
@@ -988,6 +1069,32 @@ def _build_parser() -> argparse.ArgumentParser:
     apply_cmd.add_argument("--yes", action="store_true",
                             help="skip the confirmation prompt")
 
+    create_cmd = theme_sub.add_parser(
+        "create",
+        help="generate a theme from a wallpaper's extracted palette (write; requires --yes)",
+        epilog="example: omni theme create --from-wallpaper ~/Pictures/wall.png "
+               "--name 'Sunset' --apply --yes",
+    )
+    create_cmd.add_argument("--from-wallpaper", required=True,
+                            help="image file to extract the palette from")
+    create_cmd.add_argument("--name", required=True, help="theme name (id is derived)")
+    create_cmd.add_argument("--mode", choices=("dark", "light"), default="dark",
+                            help="theme mode (default: %(default)s)")
+    create_cmd.add_argument("--n-colors", type=int, default=8,
+                            help="k-means cluster count, 2-16 (default: %(default)s)")
+    create_cmd.add_argument("--sample-size", type=int, default=200,
+                            help="analysis sampling resolution (default: %(default)s)")
+    create_cmd.add_argument("--root", type=Path, default=DEFAULT_THEMES_ROOT,
+                            help="directory to create the theme in (default: %(default)s)")
+    create_cmd.add_argument("--state-root", type=Path, help="override state root for testing")
+    create_cmd.add_argument("--force", action="store_true",
+                            help="overwrite an existing theme directory of the same id")
+    create_cmd.add_argument("--apply", action="store_true",
+                            help="also activate the created theme")
+    create_cmd.add_argument("--yes", action="store_true",
+                            help="skip the confirmation prompt")
+    create_cmd.add_argument("--json", action="store_true", help="emit JSON report")
+
     current = theme_sub.add_parser("current", help="print the active theme id")
     current.add_argument("--root", type=Path, default=DEFAULT_THEMES_ROOT)
     current.add_argument("--state-root", type=Path, help="override state root for testing")
@@ -1077,6 +1184,7 @@ def main(argv: list[str] | None = None) -> int:
             ("theme", "validate"): _cmd_theme_validate,
             ("theme", "preview"): _cmd_theme_preview,
             ("theme", "apply"): _cmd_theme_apply,
+            ("theme", "create"): _cmd_theme_create,
             ("theme", "current"): _cmd_theme_current,
             ("theme", "rollback"): _cmd_theme_rollback,
             ("theme", "list"): _cmd_theme_list,

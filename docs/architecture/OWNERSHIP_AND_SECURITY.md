@@ -85,11 +85,17 @@ rejects duplicate sections and would re-serialise whole files.
   header). Konsole profile surgery, `konsolerc` detection parsing and
   the gtk sync `kdeglobals` parser all delegate to it.
 * **Mechanism per KDE INI file** (audited in session 13):
-  * `kdeglobals` — never written by Omni; written by KDE's own
-    `plasma-apply-colorscheme` and read back via `kreadconfig6` (native
-    tooling kept);
-  * `kwinrc`, `plasmarc` — never touched by any code path (pinned by
-    `tests/unit/test_kwin_config.py`);
+  * `kdeglobals` — written by KDE's own `plasma-apply-colorscheme` and
+    read back via `kreadconfig6` (native tooling kept); the
+    `plasma-chrome` adapter may additionally set `[Colors:Tooltip]`
+    keys the theme explicitly authors — key-level, journalled, with
+    byte-snapshot rollback (never whole-file);
+  * `kwinrc` — the `plasma-chrome` adapter may set the
+    `[org.kde.kdecoration2] theme`/`library` keys (journalled, same
+    surgical model); this is the single sanctioned seam, pinned by
+    `tests/unit/test_kwin_config.py` (whole-file kwinrc targets and
+    behavioural KWin settings remain forbidden). `plasmarc` — never
+    touched by any code path;
   * `konsolerc` — read-only (detection parses it; never written);
   * Konsole `*.profile` — value-scoped edit of `[Appearance]
     ColorScheme=` via `core/kde_config.set_ini_key`; a byte snapshot in
@@ -200,8 +206,11 @@ documented in the research notes. Do not treat the intent as shipped.
 
 ## What Omni never does
 
-* never writes `kdeglobals`, `QtProject.conf`, `kwinrc`, or any Plasma
-  Style / Global Theme package (see [qt-kde-boundary.md](qt-kde-boundary.md));
+* never writes `kdeglobals`/`kwinrc` as **whole-file managed targets**
+  (the only exception is the plasma-chrome adapter's journalled,
+  key-level edits documented above); `QtProject.conf` and any Plasma
+  Style / Global Theme package are never written
+  (see [qt-kde-boundary.md](qt-kde-boundary.md));
 * never invokes global-theme switching tools that reset layout-adjacent state;
 * never modifies, deletes or repairs user files outside its ownership records;
 * never weakens or bypasses the checks above to make a command succeed

@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=Omni Theme Settings
+GenericName=Desktop Theme Manager
+Comment=Match your CachyOS KDE desktop theme to any wallpaper instantly
+Exec=/bin/sh -c 'exec "$HOME"/.local/share/omni-theme-cachy/gui/omni-settings-gui'
+TryExec=/bin/sh
+Icon=preferences-desktop-theme
+Terminal=false
+Categories=Settings;DesktopSettings;KDE;Qt;
+Keywords=theme;color;wallpaper;plasma;kde;cachyos;appearance;
+StartupNotify=true
+X-KDE-StartupNotify=true

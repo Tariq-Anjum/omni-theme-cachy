@@ -56,9 +56,16 @@ def test_commands_metadata_is_stable():
     by_name = {entry["name"]: entry for entry in _commands_metadata()}
     assert set(by_name) == {
         "theme.list", "theme.validate", "theme.preview", "theme.apply",
-        "theme.current", "theme.rollback",
+        "theme.create", "theme.current", "theme.rollback",
         "status", "wallpaper.list", "wallpaper.current", "wallpaper.set",
         "doctor", "version", "commands",
+    }
+    assert by_name["theme.create"] == {
+        "name": "theme.create",
+        "mutates": True,
+        "supports_yes": True,
+        "supports_json": True,
+        "supports_dry_run": False,
     }
     assert by_name["theme.apply"] == {
         "name": "theme.apply",

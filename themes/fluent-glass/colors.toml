@@ -1,0 +1,62 @@
+# fluent-glass palette — deep blue surfaces, light sky-blue accent,
+# magenta secondary pulled from the wallpaper glow.
+# All values are canonical '#RRGGBB'. Text pairs meet WCAG AA (>= 4.5:1)
+# against `background`; accent/status pairs meet the UI minimum (>= 3.0:1).
+
+# Surfaces (darkest → lightest)
+background         = "#0f2438"
+darker_background  = "#0a1830"
+dark_background    = "#0d1f33"
+lighter_background = "#16324e"
+
+# Text
+foreground         = "#d9e6f2"
+bright_foreground  = "#f2f8fd"
+light_foreground   = "#e6f0fa"
+dark_foreground    = "#8fa8bd"   # for use on light/inverted surfaces
+muted              = "#7e96ac"   # de-emphasized text
+
+# Interaction
+accent             = "#5cb8f6"
+accent_secondary   = "#c858e8"
+selection          = "#1f4a72"   # mix(background, accent, 35%)
+
+# Status
+success            = "#67b06a"
+warning            = "#e0a95e"
+error              = "#e06060"
+info               = "#5cb8f6"
+
+# Terminal base hues
+red                = "#e06c75"
+green              = "#7ec97f"
+yellow             = "#e5c07b"
+blue               = "#56a8f0"
+magenta            = "#c858e8"
+cyan               = "#4fc3e8"
+
+# Terminal bright hues
+bright_red         = "#f09098"
+bright_green       = "#9ad9a0"
+bright_yellow      = "#efd49a"
+bright_blue        = "#84c4f8"
+bright_magenta     = "#dc8af0"
+bright_cyan        = "#78d6f0"
+
+# ANSI ramp (color0-7 normal, color8-15 bright)
+color0             = "#0a1a2c"
+color1             = "#e06c75"
+color2             = "#7ec97f"
+color3             = "#e5c07b"
+color4             = "#56a8f0"
+color5             = "#c858e8"
+color6             = "#4fc3e8"
+color7             = "#c9d9e8"
+color8             = "#4a6580"
+color9             = "#f09098"
+color10            = "#9ad9a0"
+color11            = "#efd49a"
+color12            = "#84c4f8"
+color13            = "#dc8af0"
+color14            = "#78d6f0"
+color15            = "#eef6fd"

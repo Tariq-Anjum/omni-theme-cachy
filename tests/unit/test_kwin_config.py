@@ -1,11 +1,17 @@
-"""Guard tests: the engine never touches ``kwinrc`` (session 13).
+"""Guard tests: the engine never *owns* ``kwinrc`` (session 13).
 
 Window behaviour, tiling, KWin scripts and global workflow preferences
 are outside the theme engine's product scope (control-plane session 06/09
-scope decisions). No code path may write ``kwinrc`` — not to create a
-"seamless" experience, and not via any adapter. These tests pin that
-boundary; a future session that legitimately needs KWin scope must
-change these guards together with an explicit control-plane decision.
+scope decisions). No code path may write ``kwinrc`` as a managed
+whole-file artifact.
+
+Control-plane decision (2026-08, user-directed): *window decoration
+selection* is in scope through the :mod:`adapters.kde.chrome` adapter,
+which performs key-level, journalled, byte-preserving edits via
+:mod:`core.kde_config` (same ownership model as the Konsole adapter).
+That adapter is the single sanctioned exception below; everything else —
+whole-file kwinrc targets, behavioural KWin settings, scripts — stays
+out of scope. These tests pin that boundary.
 
 The guards scan repository sources only — they never read or write any
 real user configuration.
@@ -20,6 +26,10 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 _SOURCE_ROOTS = ("core", "adapters", "hooks", "scripts")
+
+#: The one sanctioned seam (see module docstring): surgical, journalled
+#: decoration-selection edits. Any other file mentioning kwinrc fails.
+_KWINRC_ALLOWLIST = {"adapters/kde/chrome.py"}
 
 
 def _python_sources() -> list[Path]:
@@ -48,7 +58,10 @@ def test_no_source_references_kwinrc():
         for path in _python_sources()
         if "kwinrc" in path.read_text(encoding="utf-8")
     ]
-    assert hits == [], f"kwinrc referenced by code (write-scope guard): {hits}"
+    unexpected = [h for h in hits if h not in _KWINRC_ALLOWLIST]
+    assert unexpected == [], f"kwinrc referenced outside the sanctioned seam: {unexpected}"
+    # The sanctioned seam must keep existing for the exception to make sense.
+    assert set(hits) == _KWINRC_ALLOWLIST
 
 
 def test_no_kwinrc_managed_target():

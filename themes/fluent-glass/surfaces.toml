@@ -1,0 +1,12 @@
+# fluent-glass UI surface roles — blue-tinted chrome matching the
+# reference look: elevated blue popups, quiet navy borders, and a
+# focus gradient that echoes the wallpaper (sky blue → magenta).
+
+[popups]
+background    = "#14304a"
+border        = "#5cb8f6"
+border-width  = 1
+
+[controls]
+normal-border = "#24496b"
+focus-border  = "rgba(5cb8f6ee) rgba(c858e8ee) 45deg"

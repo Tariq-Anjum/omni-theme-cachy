@@ -4,6 +4,34 @@ All notable changes to omni-theme-cachy are documented here, by capability.
 Sessions 8–18 are the post-Session-7 security and agent-integration arc that
 culminates in the first stable release.
 
+## [Unreleased]
+
+### Added
+
+- **Wallpaper→palette extraction** (`core/wallpaper_extractor.py`): a
+  dependency-free extractor that turns any wallpaper into a complete 44-role
+  omni palette. Deterministic pure-Python k-means with calm-surface
+  background selection, hue-coherent accent/status/terminal derivation and
+  WCAG contrast floors; images decode through Pillow when available and
+  otherwise through a built-in stdlib PNG decoder (8-bit, non-interlaced).
+- **`omni theme create`**: generate a theme directory from a wallpaper's
+  extracted palette (`--from-wallpaper`, `--name`, `--mode`, `--apply`),
+  backed by `core/theme_factory.py` (also used by the GUI). Registered in
+  the mutating command inventory with `--yes`/`--json`.
+- **plasma-chrome adapter**: theme-driven shell chrome — panel opacity
+  (`[panel]`, appletsrc `[PlasmaViews][Panel <id>][Defaults]`), window
+  decoration selection (`[kwin]`, kwinrc `[org.kde.kdecoration2]`) and
+  tooltip colors (`[tooltips]`, kdeglobals `[Colors:Tooltip]`). All edits
+  are key-level, byte-preserving and journalled via `core/kde_config` for
+  exact rollback; the session-13 kwinrc guard tests were amended to allow
+  this single sanctioned seam (user-directed scope decision) while whole-file
+  kwinrc ownership stays forbidden.
+- **Omni Theme Settings GUI** (`gui/omni-settings-gui.py`): native Qt
+  settings app driving the engine directly — theme apply/rollback, live
+  wallpaper→palette preview, per-role color editor saving real theme
+  directories, in-app wallpaper watcher, plus a `omni-wallpaper-daemon`
+  auto-theming daemon, desktop launcher and systemd user unit.
+
 ## [0.1.0] — 2026-08-30
 
 First stable release of the security-hardened theme engine with agent

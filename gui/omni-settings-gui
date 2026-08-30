@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# Launch the Omni Theme Settings GUI on the engine's Python (PyQt5).
+set -euo pipefail
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+for py in "$SCRIPT_DIR/../.venv/bin/python" "$HOME/.local/share/omni-theme-cachy/.venv/bin/python"; do
+  if [ -x "$py" ]; then
+    exec "$py" "$SCRIPT_DIR/omni-settings-gui.py" "$@"
+  fi
+done
+
+if python3 -c "import PyQt5" >/dev/null 2>&1; then
+  exec python3 "$SCRIPT_DIR/omni-settings-gui.py" "$@"
+fi
+
+echo "No Python environment with PyQt5 found." >&2
+echo "Install into the engine venv: ~/.local/share/omni-theme-cachy/.venv/bin/pip install PyQt5 Pillow" >&2
+exit 1

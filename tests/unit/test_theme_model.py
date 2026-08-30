@@ -52,7 +52,9 @@ class TestConstants:
         assert len(set(REQUIRED_COLORS)) == len(REQUIRED_COLORS)
 
     def test_surface_constants(self):
-        assert KNOWN_SURFACE_GROUPS == ("popups", "controls")
+        assert KNOWN_SURFACE_GROUPS == (
+            "popups", "controls", "panel", "kwin", "tooltips",
+        )
         assert SURFACES_FILE == "surfaces.toml"
 
 

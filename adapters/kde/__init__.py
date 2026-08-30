@@ -16,6 +16,11 @@ adapters in later sessions.
 from __future__ import annotations
 
 from adapters.kde.adapter import KdeAdapter, KdePlan
+from adapters.kde.chrome import ChromePlan, PlasmaChromeAdapter
 from adapters.kde.detection import PlasmaEnvironment, detect_plasma
 
-__all__ = ["KdeAdapter", "KdePlan", "PlasmaEnvironment", "detect_plasma"]
+__all__ = [
+    "KdeAdapter", "KdePlan",
+    "PlasmaChromeAdapter", "ChromePlan",
+    "PlasmaEnvironment", "detect_plasma",
+]

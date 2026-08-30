@@ -20,11 +20,13 @@ from core.adapters import AdapterRegistry
 
 from adapters.gtk import GtkAdapter
 from adapters.kde import KdeAdapter
+from adapters.kde.chrome import PlasmaChromeAdapter
 from adapters.konsole import KonsoleAdapter
 from adapters.vscode import VscodeAdapter
 
 __all__ = [
     "KdeAdapter",
+    "PlasmaChromeAdapter",
     "GtkAdapter",
     "VscodeAdapter",
     "KonsoleAdapter",
@@ -42,6 +44,9 @@ def build_default_registry() -> AdapterRegistry:
     """
     registry = AdapterRegistry()
     registry.register(KdeAdapter())
+    # Chrome patches kdeglobals *after* the color scheme was applied so
+    # authored tooltip values win over the scheme-derived ones.
+    registry.register(PlasmaChromeAdapter())
     registry.register(GtkAdapter())
     registry.register(VscodeAdapter())
     registry.register(KonsoleAdapter())

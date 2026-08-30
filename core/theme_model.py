@@ -92,7 +92,11 @@ REQUIRED_COLORS: tuple[str, ...] = SEMANTIC_ROLES + ANSI_ROLES
 
 #: Surface groups defined by the spec (§4). Other groups are allowed but
 #: flagged as warnings so new upstream concepts stay visible.
-KNOWN_SURFACE_GROUPS: tuple[str, ...] = ("popups", "controls")
+KNOWN_SURFACE_GROUPS: tuple[str, ...] = (
+    "popups", "controls",
+    # Shell chrome groups, applied surgically by the plasma-chrome adapter.
+    "panel", "kwin", "tooltips",
+)
 
 
 @dataclass(frozen=True)
